@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(source:*)",
+      "Bash(python -m pytest app/tests/ -v)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
