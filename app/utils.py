@@ -1,6 +1,7 @@
 import sympy as sp
 from typing import Optional, Union
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,22 @@ def parse_latex_safely(latex_str: str) -> Optional[sp.Expr]:
         # Clean up common LaTeX issues
         latex_str = latex_str.strip()
         
+        # Normalize function names to proper LaTeX commands using regex, avoiding overlaps
+        # Fix previously split forms like "\arc\sin(x)" -> "\arcsin(x)"
+        latex_str = re.sub(r"\\arc\\(sin|cos|tan|sec|csc|cot)\b", r"\\arc\1", latex_str)
+
+        # Add backslashes for inverse trig functions when missing (e.g., arcsin(x) -> \arcsin(x))
+        for fname in ["arcsin", "arccos", "arctan", "arcsec", "arccsc", "arccot"]:
+            pattern = rf"(?<!\\){fname}\("
+            replacement = rf"\\{fname}("
+            latex_str = re.sub(pattern, replacement, latex_str, flags=re.IGNORECASE)
+
+        # Add backslashes for basic functions only when not part of a longer word (avoid 'arc' prefix)
+        for fname in ["sin", "cos", "tan", "ln", "log"]:
+            pattern = rf"(?<![\\A-Za-z]){fname}\("
+            replacement = rf"\\{fname}("
+            latex_str = re.sub(pattern, replacement, latex_str, flags=re.IGNORECASE)
+        
         # Handle missing +C case - add it if not present
         if '+C' not in latex_str and '+ C' not in latex_str and '-C' not in latex_str and '- C' not in latex_str:
             # Check if this looks like an integral result (no equals sign)
@@ -124,6 +141,47 @@ def parse_latex_safely(latex_str: str) -> Optional[sp.Expr]:
         logger.error(f"Failed to parse LaTeX '{latex_str}': {e}")
         return None
 
+
+def sympy_to_latex(expr: sp.Expr) -> str:
+    """
+    Convert a SymPy expression to LaTeX format for display.
+    Ensures constant of integration (C) appears at the end.
+    
+    Args:
+        expr (sympy.Expr): SymPy expression to convert
+        
+    Returns:
+        str: LaTeX representation of the expression
+    """
+    try:
+        # Check if the expression contains the constant C
+        C_symbol = sp.Symbol('C')
+        if C_symbol in expr.free_symbols:
+            # Separate the constant C from the rest of the expression
+            expr_without_C = expr.subs(C_symbol, 0)
+            C_coeff = expr.coeff(C_symbol, 1)  # Get coefficient of C
+            
+            if C_coeff is not None:
+                # Format as: main_expression + C (or - C if negative)
+                main_latex = sp.latex(expr_without_C)
+                
+                if C_coeff == 1:
+                    return f"{main_latex} + C"
+                elif C_coeff == -1:
+                    return f"{main_latex} - C"
+                else:
+                    # Handle cases like 2*C or -3*C
+                    C_latex = sp.latex(C_coeff)
+                    if C_coeff > 0:
+                        return f"{main_latex} + {C_latex} C"
+                    else:
+                        return f"{main_latex} {C_latex} C"  # C_latex already has the minus
+        
+        # If no C or couldn't separate it, use default latex
+        return sp.latex(expr)
+    except Exception as e:
+        logger.error(f"Error converting SymPy expression to LaTeX: {e}")
+        return str(expr)
 
 
 # class ConstantOfIntegration(sp.NumberSymbol):

@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from datetime import date
@@ -61,7 +62,12 @@ class StaticProblemSource(BaseProblemSource):
             'problem': r'\int x^2 dx',
             'solution': r'\frac{x^3}{3}',
             'difficulty': 'easy',
-            'hint': r'\text{Use the power rule:} \int x^n dx = \frac{x^{n+1}}{n+1} + C'
+            'hint': r'\text{Use the power rule:} \int x^n dx = \frac{x^{n+1}}{n+1} + C',
+            'progressive_hints':[
+                r'\text{Look at the form of integrand}',
+                r'\text{It is a power function}',
+                r'\text{Use the power rule:} \int x^n dx = \frac{x^{n+1}}{n+1} + C'
+            ]
         }
 
     def get_today_problem(self) -> Dict[str, Any]:
@@ -91,6 +97,56 @@ class DatabaseProblemSource(BaseProblemSource):
         super().__init__()
         self.db_name = db_name
 
+    def format_problem(self, problem: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Format the problem data from database, parsing JSON fields.
+        
+        Args:
+            problem: Raw problem data from database
+            
+        Returns:
+            dict: Formatted problem dictionary with parsed JSON fields
+        """
+        if 'progressive_hints' in problem and problem['progressive_hints']:
+            try:
+                # Parse the JSON string into a Python list
+                problem['progressive_hints'] = json.loads(problem['progressive_hints'])
+            except (json.JSONDecodeError, TypeError) as e:
+                # If parsing fails, fall back to empty list
+                print(f"Error parsing progressive_hints: {e}")
+                problem['progressive_hints'] = []
+        
+        # Fix LaTeX backslash escaping issues
+        latex_fields = ['solution', 'latex_problem', 'latex_solution']
+        for field in latex_fields:
+            if field in problem and problem[field]:
+                # Replace double backslashes with single backslashes for LaTeX functions
+                value = problem[field]
+                value = value.replace('\\\\', '\\')
+                problem[field] = value
+        
+        return problem
+
+    def get_random_problem(self) -> Optional[Dict[str, Any]]:
+
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM integrals ORDER BY RANDOM() LIMIT 1")
+                problem = cursor.fetchone()
+
+                if problem:
+                    # Convert the tuple to a dictionary with column names
+                    columns = [col[0] for col in cursor.description]
+                    problem_dict = dict(zip(columns, problem))
+                    return self.format_problem(problem_dict)
+
+        except sqlite3.Error as e:
+            # Log the error (in a real app, use proper logging)
+            print(f"Database error: {e}")
+
+        return None
+
     def get_today_problem(self) -> Optional[Dict[str, Any]]:
         """
         Return today's integral problem from the database.
@@ -115,5 +171,5 @@ class DatabaseProblemSource(BaseProblemSource):
         except sqlite3.Error as e:
             # Log the error (in a real app, use proper logging)
             print(f"Database error: {e}")
-            
+
         return None

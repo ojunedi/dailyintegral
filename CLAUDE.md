@@ -8,26 +8,25 @@ This is a Flask-based "Daily Integral Challenge" web application that presents u
 dailyintegral/
 ├── app/
 │   ├── __init__.py          # Flask app factory with logging config and CORS setup
-│   ├── api.py              # API endpoints for React frontend
-│   ├── routes.py            # Main route handler for problem display/validation  
+│   ├── api.py               # API endpoints for React frontend
 │   ├── utils.py             # Math utilities (equivalence checking, LaTeX parsing)
 │   ├── problem_source.py    # Abstract base classes and implementations for problem sources
-│   ├── templates/
-│   │   └── index.html       # Backend template (legacy)
 │   ├── tests/
 │   │   └── test_utils.py    # Unit tests for utils module
-│   └── integrals.db        # SQLite database with problems
-├── frontend/               # React frontend application
+│   └── integrals.db         # SQLite database with problems (copy)
+├── frontend/                # React frontend application
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── services/       # API service layer
-│   │   └── ...            # Other frontend files
-│   ├── package.json       # Frontend dependencies
-│   └── vite.config.js     # Frontend build configuration
-├── env/                   # Python virtual environment
-├── integrals.db          # SQLite database with problems (main)
-├── pytest.ini           # Test configuration
-└── run.py               # Application entry point
+│   │   ├── components/      # React components
+│   │   ├── services/        # API service layer
+│   │   └── styles/          # CSS styles
+│   ├── package.json         # Frontend dependencies
+│   └── vite.config.js       # Frontend build configuration
+├── .env/                    # Python virtual environment
+├── integrals.db             # SQLite database with problems (main)
+├── requirements.txt         # Python dependencies (pinned versions)
+├── start.sh                 # Startup script for both servers
+├── pytest.ini               # Test configuration
+└── run.py                   # Application entry point
 ```
 
 ## Current Dependencies
@@ -65,7 +64,7 @@ dailyintegral/
 - **Frontend separation**: Added React frontend with API layer ✅
 
 ### 4. Production Features ✅ PARTIALLY ADDRESSED
-- **No requirements.txt**: Still missing backend requirements.txt ❌
+- **requirements.txt**: Created with pinned versions ✅
 - **Environment variables**: Added SECRET_KEY environment variable support ✅
 - **Error pages**: Still using generic Flask error handling ❌
 - **Rate limiting**: Not implemented ❌
@@ -78,8 +77,8 @@ dailyintegral/
 - **Caching**: No database query caching implemented ❌
 - **CDN dependencies**: MathJax/MathLive still loaded from CDNs ❌
 
-### 6. Testing & Development ❌ NOT ADDRESSED
-- **Test coverage**: Only utils module tested, 1 test still failing ❌
+### 6. Testing & Development ⚠️ PARTIALLY ADDRESSED
+- **Test coverage**: Utils module tested, 12/12 tests passing ✅
 - **Integration tests**: Routes and database interaction untested ❌
 - **Frontend tests**: No React component tests ❌
 - **Linting setup**: No code quality enforcement ❌
@@ -96,16 +95,31 @@ dailyintegral/
 2. **Code cleanup** ✅ PARTIALLY COMPLETED
    - Remove duplicate `problem_source_new.py` file ✅
    - Clean up dead code in `routes.py` ⚠️ (commented line remains)
-   - Fix failing test in `test_utils.py` ❌ (still failing)
+   - Fix failing test in `test_utils.py` ✅ (all 12 tests passing)
 
 3. **Frontend modernization** ✅ COMPLETED
    - Added React frontend with Vite build system ✅
    - Implemented API layer for backend communication ✅
    - Added CORS configuration ✅
 
-### Phase 2: Configuration & Dependencies ❌ NEEDS COMPLETION
+### Phase 2: UI/UX Enhancement ❌ NEXT IMMEDIATE PHASE
+1. **User Interface Improvements**
+   - Redesign and enhance the current React frontend
+   - Improve user experience and visual design
+   - Add responsive design features
+   - Enhance mathematical input/output display
+   - Add user feedback and interaction improvements
+
+2. **Frontend Feature Enhancements**
+   - Add progress tracking for users
+   - Implement hint system for difficult problems
+   - Add problem difficulty indicators
+   - Create better error messaging and validation feedback
+   - Add accessibility improvements
+
+### Phase 3: Configuration & Dependencies ❌ NEEDS COMPLETION
 1. **Configuration management** ⚠️ PARTIALLY COMPLETED
-   - Create `requirements.txt` ❌ (still missing)
+   - Create `requirements.txt` ✅ (created with pinned versions)
    - Add environment variable support ✅ (SECRET_KEY implemented)
    - Create configuration classes for different environments ❌
 
@@ -114,7 +128,7 @@ dailyintegral/
    - Add database migration support ❌
    - Improve error handling ✅ (try/catch blocks added)
 
-### Phase 3: Testing & Quality (Session 3)
+### Phase 4: Testing & Quality
 5. **Comprehensive testing**
    - Add integration tests for routes
    - Add database tests
@@ -126,7 +140,7 @@ dailyintegral/
    - Implement structured logging
    - Create custom error pages
 
-### Phase 4: Production Readiness (Session 4)
+### Phase 5: Production Readiness
 7. **Production deployment**
    - Add WSGI configuration
    - Environment-specific settings
@@ -142,18 +156,22 @@ dailyintegral/
 ## Testing Commands
 ```bash
 # Activate virtual environment
-source env/bin/activate
+source .env/bin/activate
 
 # Run tests
-python -m pytest app/tests/ -v
+./.env/bin/pytest app/tests/ -v
 
 # Run application
-python run.py
+./.env/bin/python run.py
 ```
 
 ## Current Test Status
-- **Backend Tests**: 7/7 tests passing ✅
+- **Backend Tests**: 12/12 tests passing ✅
 - **Test Fix**: Fixed `test_integration_examples` equivalence checking bug ✅
+- **Dependency Note**: antlr4-python3-runtime must be 4.11.x (not latest) for SymPy LaTeX parsing ✅
+
+## Known Issues / Gotchas
+- **macOS Port 5000 Conflict**: AirPlay Receiver uses port 5000 by default. If you get 403 errors, disable it: System Settings → General → AirDrop & Handoff → AirPlay Receiver → OFF
 - **Frontend Tests**: No React component tests implemented ❌
 - **Integration Tests**: No API endpoint tests implemented ❌
 
@@ -165,3 +183,4 @@ python run.py
 - **Database**: SQLite with `integrals` table containing problems
 - **API Communication**: REST endpoints with CORS enabled
 - After any changes are made look in the CLAUDE.md if any TODOs or things have been completed and update it accordingly
+- Claude is allowed to edit CLAUDE.md to keep project status current

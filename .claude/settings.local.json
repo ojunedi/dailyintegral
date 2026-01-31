@@ -3,9 +3,16 @@
     "allow": [
       "Bash(find:*)",
       "Bash(source:*)",
-      "Bash(python -m pytest app/tests/ -v)"
+      "Bash(python -m pytest app/tests/ -v)",
+      "Bash(mv:*)",
+      "Skill(frontend-design)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); echo \"$(hostname -s) $(basename \"$(echo \"$input\" | jq -r '.workspace.current_dir')\") [$(echo \"$input\" | jq -r '.model.display_name' | cut -d' ' -f1-2)]\""
+  },
+  "outputStyle": "Learning"
 }

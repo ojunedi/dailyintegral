@@ -237,6 +237,37 @@ def test_integral_formulas_7_through_10():
     if arsinh_equivalent is not None and arsinh_with_constant is not None:
         assert is_equivalent_up_to_constant(arsinh_equivalent, arsinh_with_constant), \
             "ln(x + √(x²+1)) should be equivalent to itself plus a constant"
+
+
+def test_parse_inverse_trig_plain_names():
+    r"""Ensure plain 'arcsin(x)' and 'arctan(x)' parse correctly (no stray arc\sin)."""
+
+    expr_asin = parse_latex_safely('arcsin(x)')
+    expr_atan = parse_latex_safely('arctan(x)')
+
+    assert expr_asin is not None
+    assert expr_atan is not None
+
+    # Use the variable inside the parsed expression to avoid symbol-mismatch
+    def assert_derivative_matches(expr, expected_func):
+        vars_ = list(expr.free_symbols - {sp.Symbol('C')})
+        assert vars_, "Parsed expression should contain a variable"
+        v = vars_[0]
+        assert sp.simplify(sp.diff(expr, v) - sp.diff(expected_func(v) + sp.Symbol('C'), v)) == 0
+
+    assert_derivative_matches(expr_asin, sp.asin)
+    assert_derivative_matches(expr_atan, sp.atan)
+
+
+def test_parse_inverse_trig_split_form_fixed():
+    """Previously created "\\arc\\sin(x)" should normalize to "\\arcsin(x)" and parse."""
+    # This form appeared due to naive replacements; ensure we accept it now
+    expr_split = parse_latex_safely(r'\arc\sin(x)')
+    assert expr_split is not None
+
+    # Also ensure the canonical form still parses
+    expr_canonical = parse_latex_safely(r'\arcsin(x)')
+    assert expr_canonical is not None
     
     # Formula 9: ∫dx/(a²+x²) where a > 0
     # A₁(x) = (1/a)arctan(x/a) and A₂(x) = -(1/a)arccot(x/a)
@@ -278,4 +309,3 @@ def test_integral_formulas_7_through_10():
         # At minimum, expressions with different constants should be detected as equivalent
         assert is_equivalent_up_to_constant(arcsin_expr, arcsin_plus_const), \
             "arcsin(x) should be equivalent to arcsin(x) + 5"
-
