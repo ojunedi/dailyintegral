@@ -1,0 +1,888 @@
+/* ============================================
+   DAILY INTEGRAL CHALLENGE
+   Design System: "Neon Chalkboard"
+   ============================================ */
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ============================================
+   CSS VARIABLES - Design Tokens
+   ============================================ */
+:root {
+  /* Colors - Chalkboard Base */
+  --bg-deep: #0d0d1a;
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #1f2940;
+  --bg-elevated: #252d45;
+
+  /* Colors - Neon Accents */
+  --neon-cyan: #00fff5;
+  --neon-cyan-dim: #00b8b0;
+  --neon-pink: #ff2e63;
+  --neon-pink-dim: #cc2550;
+  --neon-green: #39ff14;
+  --neon-amber: #ffa500;
+  --neon-purple: #bf40ff;
+
+  /* Colors - Text */
+  --text-primary: #f0f0f0;
+  --text-secondary: #a8b2c1;
+  --text-muted: #6b7a90;
+  --chalk-white: #e8e8e8;
+
+  /* Colors - Semantic */
+  --success: #39ff14;
+  --success-bg: rgba(57, 255, 20, 0.1);
+  --error: #ff2e63;
+  --error-bg: rgba(255, 46, 99, 0.1);
+
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-math: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', serif;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* Shadows & Glows */
+  --glow-cyan: 0 0 20px rgba(0, 255, 245, 0.4), 0 0 40px rgba(0, 255, 245, 0.2);
+  --glow-cyan-intense: 0 0 30px rgba(0, 255, 245, 0.6), 0 0 60px rgba(0, 255, 245, 0.3), 0 0 100px rgba(0, 255, 245, 0.1);
+  --glow-pink: 0 0 20px rgba(255, 46, 99, 0.4), 0 0 40px rgba(255, 46, 99, 0.2);
+  --glow-green: 0 0 20px rgba(57, 255, 20, 0.5), 0 0 40px rgba(57, 255, 20, 0.3);
+  --shadow-card: 0 4px 30px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.5);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+  --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-mono);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: #1a2332;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Chalkboard with subtle grid lines */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    /* Vignette effect - darker edges like worn chalkboard */
+    radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%),
+    /* Subtle grid lines - graph paper effect */
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    /* Chalk dust spots */
+    radial-gradient(circle 2px at 10% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 100%),
+    radial-gradient(circle 1px at 25% 60%, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
+    radial-gradient(circle 2px at 70% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 100%),
+    radial-gradient(circle 1px at 85% 75%, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
+    radial-gradient(circle 2px at 45% 85%, rgba(255, 255, 255, 0.03) 0%, transparent 100%),
+    radial-gradient(circle 1px at 60% 15%, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
+    /* Base slate color with subtle variation */
+    linear-gradient(135deg, #1a2332 0%, #1e2a3a 25%, #1a2332 50%, #1c2636 75%, #1a2332 100%);
+  background-size:
+    100% 100%,
+    40px 40px,
+    40px 40px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Floating math symbols - the "chalk doodles" effect */
+body::after {
+  content: '∫ ∑ ∂ π ∞ √ ∫ dx ∮ ∇ Δ';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: space-around;
+  justify-content: space-around;
+  font-family: 'Times New Roman', serif;
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.015);
+  letter-spacing: 5rem;
+  line-height: 8rem;
+  word-spacing: 10rem;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+  animation: chalkFade 20s ease-in-out infinite;
+}
+
+@keyframes chalkFade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-lg);
+  padding-top: var(--space-xl);
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+  animation: containerFadeIn 0.8s ease-out;
+}
+
+@keyframes containerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+  position: relative;
+}
+
+.header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--chalk-white);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-sm);
+  text-shadow: 0 0 40px rgba(0, 255, 245, 0.3);
+}
+
+.header h1 .accent {
+  color: var(--neon-cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.header .subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* Streak Counter */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+  margin-top: var(--space-md);
+  font-size: 0.85rem;
+  color: var(--neon-amber);
+  box-shadow: 0 0 20px rgba(255, 165, 0, 0.1);
+}
+
+.streak-badge .flame {
+  font-size: 1.2rem;
+  animation: flamePulse 1s ease-in-out infinite;
+}
+
+@keyframes flamePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.streak-badge .count {
+  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+/* ============================================
+   PROBLEM DISPLAY CARD
+   ============================================ */
+.problem-display {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 245, 0.15);
+  box-shadow: var(--shadow-card);
+  animation: cardSlideIn 0.6s ease-out 0.2s both;
+}
+
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Neon border glow effect */
+.problem-display::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-cyan));
+  background-size: 200% 100%;
+  animation: borderGlow 3s linear infinite;
+}
+
+@keyframes borderGlow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.problem-display h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.problem-display h2::before {
+  content: '∫';
+  font-size: 1.4rem;
+  color: var(--neon-cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.problem-content p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-md);
+}
+
+/* Problem Equation Box */
+.problem-equation {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl) var(--space-lg);
+  margin: var(--space-lg) 0;
+  text-align: center;
+  border: 1px solid rgba(0, 255, 245, 0.1);
+  position: relative;
+}
+
+.problem-equation::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 30px rgba(0, 255, 245, 0.05);
+  pointer-events: none;
+}
+
+/* Difficulty Badge */
+.difficulty {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-md);
+}
+
+.difficulty.easy {
+  background: rgba(57, 255, 20, 0.1);
+  color: var(--neon-green);
+  border: 1px solid rgba(57, 255, 20, 0.3);
+}
+
+.difficulty.medium {
+  background: rgba(255, 165, 0, 0.1);
+  color: var(--neon-amber);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.difficulty.hard {
+  background: rgba(255, 46, 99, 0.1);
+  color: var(--neon-pink);
+  border: 1px solid rgba(255, 46, 99, 0.3);
+}
+
+/* ============================================
+   MATH INPUT
+   ============================================ */
+.answer-input {
+  margin-bottom: var(--space-xl);
+  animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.answer-input label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.math-input-container {
+  position: relative;
+  margin-bottom: var(--space-lg);
+}
+
+math-field {
+  font-family: var(--font-math);
+  display: block;
+  width: 100%;
+  min-height: 70px;
+  padding: var(--space-lg);
+  font-size: 1.4rem;
+  background: var(--bg-card);
+  border: 2px solid rgba(0, 255, 245, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--chalk-white);
+  transition: all var(--transition-base);
+  caret-color: var(--neon-cyan);
+}
+
+math-field:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-cyan), inset 0 0 30px rgba(0, 255, 245, 0.03);
+}
+
+math-field:hover:not(:focus) {
+  border-color: rgba(0, 255, 245, 0.4);
+}
+
+math-field.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-elevated);
+}
+
+math-field::part(virtual-keyboard-toggle) {
+  display: none;
+}
+
+/* Math field content styling — uses CSS custom properties to penetrate shadow DOM */
+math-field {
+  --_text-font-family: var(--font-math);
+  --selection-color: var(--chalk-white);
+  --selection-background-color: rgba(0, 255, 245, 0.3);
+  --contains-highlight-background-color: rgba(0, 255, 245, 0.08);
+  --highlight-text: rgba(0, 255, 245, 0.1);
+  --caret-color: var(--neon-cyan);
+  --composition-background-color: var(--bg-elevated);
+  --composition-text-color: var(--chalk-white);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.button {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: var(--space-md) var(--space-xl);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.button:hover::before {
+  left: 100%;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, var(--neon-cyan-dim), var(--neon-cyan));
+  color: var(--bg-deep);
+  box-shadow: 0 4px 20px rgba(0, 255, 245, 0.3);
+}
+
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-cyan);
+}
+
+.button-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.button-secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   PROGRESSIVE HINTS
+   ============================================ */
+.progressive-hint {
+  margin-bottom: var(--space-xl);
+  animation: fadeInUp 0.6s ease-out 0.5s both;
+}
+
+.hint-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 165, 0, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  color: var(--neon-amber);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  width: 100%;
+  text-align: left;
+}
+
+.hint-toggle:hover {
+  background: var(--bg-elevated);
+  border-color: rgba(255, 165, 0, 0.4);
+  box-shadow: 0 0 20px rgba(255, 165, 0, 0.1);
+}
+
+.hint-toggle .icon {
+  font-size: 1.2rem;
+  transition: transform var(--transition-base);
+}
+
+.hint-toggle.open .icon {
+  transform: rotate(180deg);
+}
+
+.hint-content {
+  margin-top: var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  border: 1px solid rgba(255, 165, 0, 0.15);
+  animation: hintReveal 0.4s ease-out;
+}
+
+@keyframes hintReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.hint-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hint-nav-button {
+  background: transparent;
+  border: 1px solid rgba(255, 165, 0, 0.3);
+  color: var(--neon-amber);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.hint-nav-button:hover:not(:disabled) {
+  background: rgba(255, 165, 0, 0.1);
+  border-color: var(--neon-amber);
+}
+
+.hint-nav-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.hint-counter {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.hint-text {
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* ============================================
+   RESULT MESSAGE
+   ============================================ */
+.result-message {
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xl);
+  position: relative;
+  overflow: hidden;
+  animation: resultPop 0.5s var(--transition-bounce);
+}
+
+@keyframes resultPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.result-message.success {
+  background: var(--success-bg);
+  border: 2px solid rgba(57, 255, 20, 0.3);
+  box-shadow: var(--glow-green);
+}
+
+.result-message.success::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(57, 255, 20, 0.1) 0%, transparent 70%);
+  animation: successPulse 2s ease-out infinite;
+}
+
+@keyframes successPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.result-message.incorrect,
+.result-message.error {
+  background: var(--error-bg);
+  border: 2px solid rgba(255, 46, 99, 0.3);
+}
+
+.result-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.result-message.success .result-title {
+  color: var(--neon-green);
+}
+
+.result-message.incorrect .result-title,
+.result-message.error .result-title {
+  color: var(--neon-pink);
+}
+
+.result-message p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  position: relative;
+  z-index: 1;
+}
+
+.result-message .answer-display {
+  background: var(--bg-card);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  margin: var(--space-sm) 0;
+}
+
+/* ============================================
+   MATHJAX STYLING
+   ============================================ */
+.MathJax {
+  font-size: inherit !important;
+  color: var(--chalk-white) !important;
+}
+
+.problem-equation .MathJax {
+  font-size: 1.8em !important;
+}
+
+.result-message .MathJax {
+  font-size: 1.2em !important;
+}
+
+.hint-content .MathJax {
+  font-size: 1.1em !important;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+.loading {
+  text-align: center;
+  padding: var(--space-3xl);
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--bg-card);
+  border-top-color: var(--neon-cyan);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--space-lg);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* ============================================
+   ERROR STATE
+   ============================================ */
+.error-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 46, 99, 0.2);
+}
+
+.error-state .icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+}
+
+.error-state p {
+  color: var(--neon-pink);
+  margin-bottom: var(--space-lg);
+}
+
+/* ============================================
+   PARTICLES (for success celebration)
+   ============================================ */
+.particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: particleFall 3s ease-out forwards;
+}
+
+@keyframes particleFall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .app {
+    padding: var(--space-md);
+    padding-top: var(--space-lg);
+  }
+
+  .container {
+    max-width: 100%;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .problem-display {
+    padding: var(--space-lg);
+  }
+
+  .problem-equation {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .problem-equation .MathJax {
+    font-size: 1.4em !important;
+  }
+
+  math-field {
+    font-size: 1.2rem;
+    min-height: 60px;
+    padding: var(--space-md);
+  }
+
+  .button {
+    width: 100%;
+    padding: var(--space-md);
+  }
+
+  .hint-navigation {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .hint-nav-button {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--neon-cyan);
+  outline-offset: 2px;
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  :root {
+    --bg-card: #000;
+    --text-primary: #fff;
+    --neon-cyan: #00ffff;
+  }
+}
