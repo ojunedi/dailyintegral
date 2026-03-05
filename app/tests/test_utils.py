@@ -83,10 +83,10 @@ def test_parse_latex_safely_basic():
     result = parse_latex_safely(r'x^2 + C')
     assert result is not None
     
-    # Expression without constant - should auto-add +C
+    # Expression without constant - should still parse (no auto-add +C)
     result = parse_latex_safely(r'\frac{x^2}{2}')
     assert result is not None
-    assert 'C' in str(result)  # Should have added +C
+    assert 'C' not in str(result)  # No longer auto-adds +C
     
     # Empty or None input
     assert parse_latex_safely('') is None
@@ -309,3 +309,68 @@ def test_parse_inverse_trig_split_form_fixed():
         # At minimum, expressions with different constants should be detected as equivalent
         assert is_equivalent_up_to_constant(arcsin_expr, arcsin_plus_const), \
             "arcsin(x) should be equivalent to arcsin(x) + 5"
+
+
+def test_has_constant_of_integration():
+    """Test that has_constant_of_integration correctly detects +C in LaTeX strings."""
+    from app.utils import has_constant_of_integration
+
+    # Should return True — user included +C
+    assert has_constant_of_integration(r'\frac{x^3}{3} + C') is True
+    assert has_constant_of_integration(r'x^2 + C') is True
+    assert has_constant_of_integration(r'\sin(x) +C') is True
+    assert has_constant_of_integration(r'x - C') is True
+    assert has_constant_of_integration(r'x^2 + 3x + C') is True
+
+    # Should return False — user forgot +C
+    assert has_constant_of_integration(r'\frac{x^3}{3}') is False
+    assert has_constant_of_integration(r'x^2') is False
+    assert has_constant_of_integration(r'\sin(x)') is False
+    assert has_constant_of_integration(r'x^2 + 3x') is False
+
+    # Edge case: C appearing as part of another symbol (e.g. \cos)
+    # should NOT count as having +C
+    assert has_constant_of_integration(r'\cos(x)') is False
+    assert has_constant_of_integration(r'C_1') is False
+
+
+def test_indefinite_integral_requires_plus_c():
+    """Test that indefinite integrals without +C are marked incorrect.
+
+    This tests the full flow: parse_latex_safely with is_indefinite=True
+    should NOT auto-add +C anymore. Instead, the caller checks via
+    has_constant_of_integration before accepting the answer.
+    """
+    from app.utils import has_constant_of_integration
+
+    # User submits x^3/3 + C for integral of x^2 — should pass
+    user_with_c = r'\frac{x^3}{3} + C'
+    assert has_constant_of_integration(user_with_c) is True
+    parsed = parse_latex_safely(user_with_c, is_indefinite=True)
+    assert parsed is not None
+
+    correct = parse_latex_safely(r'\frac{x^3}{3} + C', is_indefinite=True)
+    assert is_equivalent_up_to_constant(parsed, correct)
+
+    # User submits x^3/3 WITHOUT +C — has_constant should fail
+    user_no_c = r'\frac{x^3}{3}'
+    assert has_constant_of_integration(user_no_c) is False
+
+    # User submits sin(x) + C for integral of cos(x) — should pass
+    user_trig = r'\sin(x) + C'
+    assert has_constant_of_integration(user_trig) is True
+    parsed_trig = parse_latex_safely(user_trig, is_indefinite=True)
+    correct_trig = parse_latex_safely(r'\sin(x) + C', is_indefinite=True)
+    assert is_equivalent_up_to_constant(parsed_trig, correct_trig)
+
+
+def test_definite_integral_does_not_require_c():
+    """Definite integrals should NOT require +C."""
+    from app.utils import has_constant_of_integration
+
+    # A definite integral answer of "4" is fine without C
+    definite_answer = r'4'
+    # has_constant_of_integration is only relevant for indefinite —
+    # for definite integrals, the caller should skip the check entirely
+    parsed = parse_latex_safely(definite_answer, is_indefinite=False)
+    assert parsed is not None

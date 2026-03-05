@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request, current_app, Response
 from typing import Union, Tuple
 from pydantic import ValidationError
 from app.problem_source import DatabaseProblemSource
-from app.utils import is_equivalent_up_to_constant, parse_latex_safely, sympy_to_latex
+from app.utils import is_equivalent_up_to_constant, parse_latex_safely, sympy_to_latex, has_constant_of_integration
 from app.models import (
     ProblemModel,
     SubmissionRequest,
@@ -109,6 +109,16 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
 
         # Parse user answer and correct answer safely
         is_indefinite = submission.problem.integral_type != 'definite'
+
+        # For indefinite integrals, require +C in the user's answer
+        if is_indefinite and not has_constant_of_integration(submission.answer):
+            response = SubmissionResponse(
+                success=True,
+                is_correct=False,
+                message="Don't forget the constant of integration! Add + C to your answer.",
+            )
+            return jsonify(response.model_dump())
+
         user_answer = parse_latex_safely(submission.answer, is_indefinite=is_indefinite)
         true_answer = parse_latex_safely(submission.problem.solution, is_indefinite=is_indefinite)
 

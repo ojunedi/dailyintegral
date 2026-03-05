@@ -5,6 +5,7 @@ import AnswerInput from './components/AnswerInput'
 import ResultMessage from './components/ResultMessage'
 import ProgressiveHint from './components/ProgressiveHint'
 import { apiService } from './services/api'
+import StatsPanel from './components/StatsPanel'
 
 function App() {
   const [problem, setProblem] = useState(null)
@@ -19,6 +20,11 @@ function App() {
     const saved = localStorage.getItem('integral-streak')
     return saved ? parseInt(saved, 10) : 0
   })
+  const [bestStreak, setBestStreak] = useState(() => {
+    const saved = localStorage.getItem('best-streak')
+    return saved ? parseInt(saved, 10) : 0
+  })
+  const [statsOpen, setStatsOpen] = useState(false)
 
   const getTodayKey = () => new Date().toISOString().split('T')[0]
 
@@ -63,17 +69,27 @@ function App() {
       const response = await apiService.submitAnswer(userAnswer, problem)
       setResult(response)
 
-      // In daily mode, lock after submission and persist result
+      // In daily mode, lock after submission and persist enriched result
       if (!debugMode) {
         setDailyLocked(true)
-        localStorage.setItem(`daily-result-${getTodayKey()}`, JSON.stringify(response))
+        const enrichedResult = {
+          ...response,
+          difficulty: problem?.difficulty,
+          problem_id: problem?.id,
+        }
+        localStorage.setItem(`daily-result-${getTodayKey()}`, JSON.stringify(enrichedResult))
       }
 
-      // Update streak on correct answer
-      if (response.is_correct) {
+      // Update streak on correct answer (daily mode only)
+      if (response.is_correct && !debugMode) {
         const newStreak = streak + 1
         setStreak(newStreak)
         localStorage.setItem('integral-streak', newStreak.toString())
+
+        if (newStreak > bestStreak) {
+          setBestStreak(newStreak)
+          localStorage.setItem('best-streak', newStreak.toString())
+        }
       }
     } catch (err) {
       setResult({ success: false, error: err.message })
@@ -154,6 +170,9 @@ function App() {
                   <span>day streak</span>
                 </div>
               )}
+              <button className="stats-toggle-button" onClick={() => setStatsOpen(true)}>
+                Stats
+              </button>
             </div>
           </header>
 
@@ -184,6 +203,7 @@ function App() {
             </div>
           )}
         </div>
+        <StatsPanel isOpen={statsOpen} onClose={() => setStatsOpen(false)} />
       </div>
     </MathJaxContext>
   )

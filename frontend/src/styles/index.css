@@ -934,3 +934,391 @@ math-field {
     --neon-cyan: #00ffff;
   }
 }
+
+/* ============================================
+   STATS TOGGLE BUTTON
+   ============================================ */
+.stats-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: transparent;
+  color: var(--neon-cyan);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(0, 255, 245, 0.35);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.stats-toggle-button:hover {
+  background: rgba(0, 255, 245, 0.08);
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+/* ============================================
+   STATS PANEL OVERLAY
+   ============================================ */
+.stats-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  animation: overlayFadeIn 0.25s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.stats-panel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0, 255, 245, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-elevated), 0 0 60px rgba(0, 255, 245, 0.08);
+  animation: panelSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes panelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.stats-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stats-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stats-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 245, 0.2);
+  border-radius: 2px;
+}
+
+.stats-close-btn {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.stats-close-btn:hover {
+  color: var(--neon-pink);
+  border-color: rgba(255, 46, 99, 0.4);
+  background: rgba(255, 46, 99, 0.1);
+}
+
+.stats-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--chalk-white);
+  margin-bottom: var(--space-xl);
+  text-shadow: 0 0 20px rgba(0, 255, 245, 0.2);
+}
+
+/* ============================================
+   STAT TILES - 2x2 Grid
+   ============================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.stat-tile {
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 255, 245, 0.1);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: border-color var(--transition-base);
+}
+
+.stat-tile:hover {
+  border-color: rgba(0, 255, 245, 0.25);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px rgba(0, 255, 245, 0.3);
+  line-height: 1;
+}
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ============================================
+   DIFFICULTY BREAKDOWN
+   ============================================ */
+.difficulty-breakdown {
+  margin-bottom: var(--space-xl);
+}
+
+.diff-heading {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.diff-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.diff-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: 55px;
+  flex-shrink: 0;
+}
+
+.diff-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diff-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.diff-bar-easy {
+  background: var(--neon-green);
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+
+.diff-bar-medium {
+  background: var(--neon-amber);
+  box-shadow: 0 0 8px rgba(255, 165, 0, 0.4);
+}
+
+.diff-bar-hard {
+  background: var(--neon-pink);
+  box-shadow: 0 0 8px rgba(255, 46, 99, 0.4);
+}
+
+.diff-stat {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   CALENDAR GRID
+   ============================================ */
+.calendar-container {
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 255, 245, 0.1);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.cal-month-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cal-nav-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.cal-nav-btn:hover {
+  color: var(--neon-cyan);
+  border-color: rgba(0, 255, 245, 0.3);
+  background: rgba(0, 255, 245, 0.05);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-day-header {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--space-xs) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.cal-day-empty {
+  pointer-events: none;
+}
+
+.cal-day-number {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.cal-day-dot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+/* Correct day */
+.cal-day-correct {
+  background: rgba(57, 255, 20, 0.08);
+}
+
+.cal-day-correct .cal-day-number {
+  color: var(--neon-green);
+}
+
+.cal-day-correct .cal-day-dot {
+  background: var(--neon-green);
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+}
+
+/* Incorrect day */
+.cal-day-incorrect {
+  background: rgba(255, 46, 99, 0.08);
+}
+
+.cal-day-incorrect .cal-day-number {
+  color: var(--neon-pink);
+}
+
+.cal-day-incorrect .cal-day-dot {
+  background: var(--neon-pink);
+  box-shadow: 0 0 6px rgba(255, 46, 99, 0.5);
+}
+
+/* Today ring */
+.cal-day-today {
+  outline: 2px solid var(--neon-cyan);
+  outline-offset: -2px;
+  box-shadow: 0 0 10px rgba(0, 255, 245, 0.2);
+}
+
+.cal-day-today .cal-day-number {
+  color: var(--neon-cyan);
+  font-weight: 600;
+}
+
+/* ============================================
+   STATS PANEL RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .stats-panel {
+    max-height: 90vh;
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
+  }
+
+  .stat-value {
+    font-size: 1.4rem;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+  }
+
+  .cal-day-number {
+    font-size: 0.6rem;
+  }
+}

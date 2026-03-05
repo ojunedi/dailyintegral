@@ -1,6 +1,6 @@
 #pyright: basic
 import sympy as sp
-from typing import Optional, Union
+from typing import Optional
 import logging
 import re
 
@@ -129,11 +129,9 @@ def parse_latex_safely(latex_str: str, is_indefinite: bool = True) -> Optional[s
             replacement = rf"\\{fname}("
             latex_str = re.sub(pattern, replacement, latex_str, flags=re.IGNORECASE)
 
-        # Handle missing +C case - only for indefinite integrals
-        if is_indefinite:
-            if '+C' not in latex_str and '+ C' not in latex_str and '-C' not in latex_str and '- C' not in latex_str:
-                if '=' not in latex_str:
-                    latex_str = latex_str + ' + C'
+        # For indefinite integrals, if user included +C we keep it;
+        # if they didn't, we still parse but the caller should reject via
+        # has_constant_of_integration() check.
 
         parsed_expr = parse_latex(latex_str)
         logger.info(f"Successfully parsed LaTeX: {latex_str} -> {parsed_expr}")
@@ -142,6 +140,19 @@ def parse_latex_safely(latex_str: str, is_indefinite: bool = True) -> Optional[s
     except Exception as e:
         logger.error(f"Failed to parse LaTeX '{latex_str}': {e}")
         return None
+
+
+def has_constant_of_integration(latex_str: str) -> bool:
+    """
+    Check if a LaTeX string contains a constant of integration (+C or -C).
+    Returns False if C only appears as part of another token (e.g. \\cos).
+    """
+    if not latex_str:
+        return False
+    # Match standalone C preceded by + or - (with optional spaces)
+    # Negative lookbehind: not preceded by a backslash or letter
+    # Negative lookahead: not followed by a letter, digit, or underscore
+    return bool(re.search(r'(?<![\\A-Za-z])[+-]\s*C(?![A-Za-z0-9_])', latex_str))
 
 
 def sympy_to_latex(expr: sp.Expr, is_indefinite: bool = True) -> str:
