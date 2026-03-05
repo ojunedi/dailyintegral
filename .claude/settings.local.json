@@ -5,7 +5,8 @@
       "Bash(source:*)",
       "Bash(python -m pytest app/tests/ -v)",
       "Bash(mv:*)",
-      "Skill(frontend-design)"
+      "Skill(frontend-design)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

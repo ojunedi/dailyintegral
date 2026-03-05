@@ -8,6 +8,7 @@ def create_app() -> Flask:
     """Initialize the Flask application."""
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-for-development-only'
+    app.config['DEBUG_MODE'] = os.environ.get('DAILY_INTEGRAL_DEBUG', '').strip() not in ('', '0', 'false')
 
     # Enable CORS for React frontend (allow both frontend and any localhost development)
     CORS(app, origins=[

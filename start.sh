@@ -52,6 +52,10 @@ for arg in "$@"; do
         --frontend|-f)
             FRONTEND_ONLY=true
             ;;
+        --debug|-d)
+            export DAILY_INTEGRAL_DEBUG=1
+            echo -e "${YELLOW}Debug mode enabled — random problems on each load${NC}"
+            ;;
         --help|-h)
             echo ""
             echo "Usage: ./start.sh [options]"
@@ -60,6 +64,7 @@ for arg in "$@"; do
             echo "  --separate, -s    Open backend and frontend in separate Terminal windows"
             echo "  --backend, -b     Start only the backend server"
             echo "  --frontend, -f    Start only the frontend server"
+            echo "  --debug, -d       Enable debug mode (random problems instead of daily)"
             echo "  --help, -h        Show this help message"
             echo ""
             exit 0

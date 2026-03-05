@@ -2,7 +2,7 @@ import sqlite3
 import json
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-from datetime import date
+from datetime import date, datetime
 
 class ProblemSource(ABC):
     """
@@ -143,6 +143,41 @@ class DatabaseProblemSource(BaseProblemSource):
 
         except sqlite3.Error as e:
             # Log the error (in a real app, use proper logging)
+            print(f"Database error: {e}")
+
+        return None
+
+    def get_daily_problem(self) -> Optional[Dict[str, Any]]:
+        """
+        Return today's daily problem, deterministically chosen by date.
+
+        Uses days since Unix epoch mod total problem count to cycle through
+        all problems. Same problem for all users on the same day.
+
+        Returns:
+            dict or None: A dictionary containing the problem details or None if no problem found
+        """
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+
+                cursor.execute("SELECT COUNT(*) FROM integrals")
+                total = cursor.fetchone()[0]
+                if total == 0:
+                    return None
+
+                days_since_epoch = (date.today() - date(1970, 1, 1)).days
+                offset = days_since_epoch % total
+
+                cursor.execute("SELECT * FROM integrals LIMIT 1 OFFSET ?", (offset,))
+                problem = cursor.fetchone()
+
+                if problem:
+                    columns = [col[0] for col in cursor.description]
+                    problem_dict = dict(zip(columns, problem))
+                    return self.format_problem(problem_dict)
+
+        except sqlite3.Error as e:
             print(f"Database error: {e}")
 
         return None

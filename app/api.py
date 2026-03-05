@@ -1,3 +1,4 @@
+# pyright: basic
 from flask import Blueprint, jsonify, request, current_app, Response
 from typing import Union, Tuple
 from pydantic import ValidationError
@@ -23,21 +24,33 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
         Response or tuple: JSON response with problem data or error
     """
     try:
+        debug_mode = current_app.config.get('DEBUG_MODE', False)
         problem_source = DatabaseProblemSource('integrals.db')
-        problem_data = problem_source.get_random_problem()
+
+        if debug_mode:
+            problem_data = problem_source.get_random_problem()
+        else:
+            problem_data = problem_source.get_daily_problem()
 
         if problem_data:
-            # Validate with Pydantic
             try:
                 problem = ProblemModel(**problem_data)
-                response = ProblemResponse(success=True, problem=problem)
-                current_app.logger.info(f"API: Today's problem: {problem.id}")
+                response = ProblemResponse(
+                    success=True,
+                    problem=problem,
+                    debug_mode=debug_mode
+                )
+                current_app.logger.info(
+                    f"API: Serving problem {problem.id} "
+                    f"({'debug/random' if debug_mode else 'daily'})"
+                )
                 return jsonify(response.model_dump())
             except ValidationError as e:
                 current_app.logger.error(f"Problem validation error: {e}")
                 response = ProblemResponse(
                     success=False,
                     problem=problem_data,
+                    debug_mode=debug_mode,
                     error="Problem data validation failed"
                 )
                 return jsonify(response.model_dump()), 500
@@ -45,6 +58,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
             response = ProblemResponse(
                 success=False,
                 problem=problem_data,
+                debug_mode=debug_mode,
                 error='No problem available for today'
             )
             return jsonify(response.model_dump()), 404
@@ -60,7 +74,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
 
 
 @api_bp.route('/submit', methods=['POST'])
-def submit_answer() -> Union[Response, Tuple[Response, int]]:
+def submit_answer() -> Union[Response, tuple[Response, int]]:
     """
     Submit and validate an answer.
 
@@ -94,8 +108,9 @@ def submit_answer() -> Union[Response, Tuple[Response, int]]:
         current_app.logger.info(f"API: Problem ID: {submission.problem.id}")
 
         # Parse user answer and correct answer safely
-        user_answer = parse_latex_safely(submission.answer)
-        true_answer = parse_latex_safely(submission.problem.solution)
+        is_indefinite = submission.problem.integral_type != 'definite'
+        user_answer = parse_latex_safely(submission.answer, is_indefinite=is_indefinite)
+        true_answer = parse_latex_safely(submission.problem.solution, is_indefinite=is_indefinite)
 
         if user_answer is None:
             response = SubmissionResponse(
@@ -128,8 +143,8 @@ def submit_answer() -> Union[Response, Tuple[Response, int]]:
             success=True,
             is_correct=is_correct,
             message='Correct! Well done!' if is_correct else 'Incorrect. Try again!',
-            user_answer=sympy_to_latex(user_answer),
-            correct_answer=sympy_to_latex(true_answer)
+            user_answer=sympy_to_latex(user_answer, is_indefinite=is_indefinite),
+            correct_answer=sympy_to_latex(true_answer, is_indefinite=is_indefinite)
         )
         return jsonify(response.model_dump())
 

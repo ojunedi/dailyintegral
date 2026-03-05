@@ -25,6 +25,7 @@ class ProblemModel(BaseModel):
     topic: Optional[str] = Field(None, description="Mathematical topic")
     latex_problem: Optional[str] = Field(None, description="Problem in LaTeX format")
     latex_solution: Optional[str] = Field(None, description="Solution in LaTeX format")
+    integral_type: str = Field("indefinite", description="Whether the integral is 'definite' or 'indefinite'")
     created_at: str | None = Field(None, description="Creation timestamp")
     updated_at: Optional[str] = Field(None, description="Update timestamp")
     progressive_hints: list[str] = Field(
@@ -102,6 +103,7 @@ class ProblemResponse(BaseModel):
 
     success: bool = Field(..., description="Whether the request succeeded")
     problem: Optional[ProblemModel] = Field(None, description="Problem data")
+    debug_mode: bool = Field(False, description="Whether debug mode is active")
     error: Optional[str] = Field(None, description="Error message if any")
 
 

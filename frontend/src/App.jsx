@@ -13,10 +13,14 @@ function App() {
   const [userAnswer, setUserAnswer] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
+  const [debugMode, setDebugMode] = useState(false)
+  const [dailyLocked, setDailyLocked] = useState(false)
   const [streak, setStreak] = useState(() => {
     const saved = localStorage.getItem('integral-streak')
     return saved ? parseInt(saved, 10) : 0
   })
+
+  const getTodayKey = () => new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     loadProblem()
@@ -30,6 +34,17 @@ function App() {
 
       if (response.success) {
         setProblem(response.problem)
+        setDebugMode(response.debug_mode || false)
+
+        // Check if user already submitted today's daily problem
+        if (!response.debug_mode) {
+          const savedResult = localStorage.getItem(`daily-result-${getTodayKey()}`)
+          if (savedResult) {
+            setSubmitted(true)
+            setResult(JSON.parse(savedResult))
+            setDailyLocked(true)
+          }
+        }
       } else {
         setError(response.error || 'Failed to load problem')
       }
@@ -48,6 +63,12 @@ function App() {
       const response = await apiService.submitAnswer(userAnswer, problem)
       setResult(response)
 
+      // In daily mode, lock after submission and persist result
+      if (!debugMode) {
+        setDailyLocked(true)
+        localStorage.setItem(`daily-result-${getTodayKey()}`, JSON.stringify(response))
+      }
+
       // Update streak on correct answer
       if (response.is_correct) {
         const newStreak = streak + 1
@@ -63,6 +84,7 @@ function App() {
     setUserAnswer('')
     setSubmitted(false)
     setResult(null)
+    setDailyLocked(false)
     loadProblem()
   }
 
@@ -119,13 +141,20 @@ function App() {
           <header className="header">
             <h1>Daily <span className="accent">Integral</span></h1>
             <p className="subtitle">Challenge your calculus skills</p>
-            {streak > 0 && (
-              <div className="streak-badge">
-                <span className="flame">🔥</span>
-                <span className="count">{streak}</span>
-                <span>day streak</span>
-              </div>
-            )}
+            <div className="header-badges">
+              {debugMode && (
+                <div className="debug-badge">
+                  DEBUG MODE
+                </div>
+              )}
+              {streak > 0 && (
+                <div className="streak-badge">
+                  <span className="flame">🔥</span>
+                  <span className="count">{streak}</span>
+                  <span>day streak</span>
+                </div>
+              )}
+            </div>
           </header>
 
           {problem && <ProblemDisplay problem={problem} />}
@@ -143,9 +172,15 @@ function App() {
           ) : (
             <div>
               <ResultMessage result={result} />
-              <button onClick={handleReset} className="button button-secondary">
-                Next Challenge →
-              </button>
+              {debugMode ? (
+                <button onClick={handleReset} className="button button-secondary">
+                  Next Challenge →
+                </button>
+              ) : (
+                <div className="daily-lock-message">
+                  <p>Come back tomorrow for a new challenge!</p>
+                </div>
+              )}
             </div>
           )}
         </div>
