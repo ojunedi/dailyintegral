@@ -225,3 +225,4 @@ logs
 *.tmp
 *.temp
 hello
+.claude/
