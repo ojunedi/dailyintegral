@@ -1,4 +1,5 @@
 # pyright: basic
+# pyright: reportCallIssue=false
 from flask import Blueprint, jsonify, request, current_app, Response
 from typing import Union, Tuple
 from pydantic import ValidationError
@@ -110,12 +111,15 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
         # Parse user answer and correct answer safely
         is_indefinite = submission.problem.integral_type != 'definite'
 
-        # For indefinite integrals, require +C in the user's answer
+        # For indefinite integrals, missing +C is immediately incorrect
         if is_indefinite and not has_constant_of_integration(submission.answer):
+            true_answer = parse_latex_safely(submission.problem.solution, is_indefinite=is_indefinite)
             response = SubmissionResponse(
                 success=True,
                 is_correct=False,
-                message="Don't forget the constant of integration! Add + C to your answer.",
+                message='Incorrect. Try again!',
+                user_answer=submission.answer,
+                correct_answer=sympy_to_latex(true_answer, is_indefinite=is_indefinite) if true_answer else None,
             )
             return jsonify(response.model_dump())
 

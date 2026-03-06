@@ -93,7 +93,7 @@ class SubmissionResponse(BaseModel):
     message: str = Field(..., description="Feedback message")
     user_answer: Optional[str] = Field(None, description="User's answer in LaTeX")
     correct_answer: Optional[str] = Field(None, description="Correct answer in LaTeX")
-    error: Optional[str] = Field(None, description="Error message if any")
+    error: str | None = Field(None, description="Error message if any")
 
 
 class ProblemResponse(BaseModel):
