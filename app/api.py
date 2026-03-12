@@ -1,5 +1,6 @@
 # pyright: basic
 # pyright: reportCallIssue=false
+import os
 from flask import Blueprint, jsonify, request, current_app, Response
 from typing import Union, Tuple
 from pydantic import ValidationError
@@ -15,6 +16,9 @@ from app.models import (
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DB_PATH = os.environ.get('DATABASE_PATH', os.path.join(_BASE_DIR, 'integrals.db'))
+
 
 @api_bp.route('/problem', methods=['GET'])
 def get_today_problem() -> Union[Response, Tuple[Response, int]]:
@@ -26,7 +30,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
     """
     try:
         debug_mode = current_app.config.get('DEBUG_MODE', False)
-        problem_source = DatabaseProblemSource('integrals.db')
+        problem_source = DatabaseProblemSource(_DB_PATH)
 
         if debug_mode:
             problem_data = problem_source.get_random_problem()
@@ -48,9 +52,10 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
                 return jsonify(response.model_dump())
             except ValidationError as e:
                 current_app.logger.error(f"Problem validation error: {e}")
+                problem = ProblemModel(**problem_data)
                 response = ProblemResponse(
                     success=False,
-                    problem=problem_data,
+                    problem=problem,
                     debug_mode=debug_mode,
                     error="Problem data validation failed"
                 )
@@ -58,7 +63,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
         else:
             response = ProblemResponse(
                 success=False,
-                problem=problem_data,
+                problem=None,
                 debug_mode=debug_mode,
                 error='No problem available for today'
             )

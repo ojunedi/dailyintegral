@@ -219,6 +219,7 @@ logs
 
 # Database files (keep schema but not data)
 *.db
+!integrals.db
 !schema.sql
 
 # Temporary files
