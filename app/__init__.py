@@ -1,26 +1,17 @@
 from flask import Flask
 from flask_cors import CORS
 import logging
-import os
+
+from app.config import get_config
 
 
-def create_app() -> Flask:
+def create_app(env_name=None) -> Flask:
     """Initialize the Flask application."""
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-for-development-only'
-    app.config['DEBUG_MODE'] = os.environ.get('DAILY_INTEGRAL_DEBUG', '').strip() not in ('', '0', 'false')
+    config = get_config(env_name)
+    app.config.from_object(config)
 
-    # CORS: allow localhost in dev; in production (Vercel), same-origin so not needed
-    CORS(app, origins=[
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'http://localhost:3000',
-        'http://localhost:5000',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:5174',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5000'
-    ])
+    CORS(app, origins=config.CORS_ORIGINS)
 
     configure_logging(app)
 

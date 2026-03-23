@@ -1,6 +1,5 @@
 # pyright: basic
 # pyright: reportCallIssue=false
-import os
 from flask import Blueprint, jsonify, request, current_app, Response
 from typing import Union, Tuple
 from pydantic import ValidationError
@@ -16,8 +15,8 @@ from app.models import (
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
-_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_DB_PATH = os.environ.get('DATABASE_PATH', os.path.join(_BASE_DIR, 'integrals.db'))
+def _get_db_path():
+    return current_app.config['DATABASE_PATH']
 
 
 @api_bp.route('/problem', methods=['GET'])
@@ -30,7 +29,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
     """
     try:
         debug_mode = current_app.config.get('DEBUG_MODE', False)
-        problem_source = DatabaseProblemSource(_DB_PATH)
+        problem_source = DatabaseProblemSource(_get_db_path())
 
         if debug_mode:
             problem_data = problem_source.get_random_problem()
