@@ -1,0 +1,10 @@
+.venv
+.env
+__pycache__
+*.pyc
+.pytest_cache
+frontend/node_modules
+frontend/dist
+.git
+*.db-journal
+figma_src

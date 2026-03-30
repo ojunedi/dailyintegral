@@ -39,6 +39,7 @@ class ProductionConfig(Config):
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY')  # Must be set in production
     LOG_LEVEL = 'WARNING'
+    PREFERRED_URL_SCHEME = 'https'
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '').split(',') if os.environ.get('CORS_ORIGINS') else []
 
 

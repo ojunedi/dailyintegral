@@ -5,6 +5,7 @@ from typing import Union, Tuple
 from pydantic import ValidationError
 from app.problem_source import DatabaseProblemSource
 from app.utils import is_equivalent_up_to_constant, parse_latex_safely, sympy_to_latex, has_constant_of_integration
+from app import limiter
 from app.models import (
     ProblemModel,
     SubmissionRequest,
@@ -79,6 +80,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
 
 
 @api_bp.route('/submit', methods=['POST'])
+@limiter.limit("20 per minute")
 def submit_answer() -> Union[Response, tuple[Response, int]]:
     """
     Submit and validate an answer.
