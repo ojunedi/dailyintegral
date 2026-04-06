@@ -115,3 +115,38 @@ class HealthResponse(BaseModel):
 
     success: bool = Field(..., description="Whether API is healthy")
     message: str = Field(..., description="Status message")
+
+
+class ProgressEntry(BaseModel):
+    """Model for a single progress entry."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
+
+    date: str = Field(..., description="Date in YYYY-MM-DD format")
+    problem_id: int = Field(..., ge=1, description="Problem ID")
+    is_correct: bool = Field(..., description="Whether the answer was correct")
+    difficulty: str = Field(..., description="Problem difficulty")
+
+    @field_validator('difficulty')
+    @classmethod
+    def validate_difficulty(cls, v: str) -> str:
+        allowed = {'easy', 'medium', 'hard'}
+        if v.lower() not in allowed:
+            raise ValueError(f"Difficulty must be one of {allowed}, got '{v}'")
+        return v.lower()
+
+    @field_validator('date')
+    @classmethod
+    def validate_date_format(cls, v: str) -> str:
+        try:
+            year, month, day = map(int, v.split('-'))
+            date(year, month, day)
+            return v
+        except (ValueError, AttributeError) as e:
+            raise ValueError(f"Date must be in YYYY-MM-DD format, got '{v}'") from e
+
+
+class SyncRequest(BaseModel):
+    """Model for bulk progress sync request."""
+
+    entries: list[ProgressEntry] = Field(..., min_length=1, max_length=500)

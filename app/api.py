@@ -2,18 +2,22 @@
 # pyright: reportCallIssue=false
 from typing import Tuple, Union
 
-from flask import Blueprint, Response, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, g, jsonify, request
 from pydantic import ValidationError
 
 from app import limiter
+from app.auth import require_auth
 from app.models import (
     HealthResponse,
     ProblemModel,
     ProblemResponse,
+    ProgressEntry,
     SubmissionRequest,
     SubmissionResponse,
+    SyncRequest,
 )
 from app.problem_source import DatabaseProblemSource
+from app.progress import get_progress, save_progress, sync_progress
 from app.utils import (
     has_constant_of_integration,
     is_equivalent_up_to_constant,
@@ -183,6 +187,63 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
             error=str(e)
         )
         return jsonify(response.model_dump()), 500
+
+
+@api_bp.route('/progress', methods=['POST'])
+@limiter.limit("30 per minute")
+@require_auth
+def save_user_progress() -> Union[Response, Tuple[Response, int]]:
+    """Save a daily result for the authenticated user."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        try:
+            entry = ProgressEntry(**data)
+        except ValidationError as e:
+            return jsonify({'success': False, 'error': str(e.errors()[0]['msg'])}), 400
+
+        save_progress(g.user_id, entry.date, entry.problem_id, entry.is_correct, entry.difficulty)
+        return jsonify({'success': True, 'message': 'Progress saved'})
+    except Exception as e:
+        current_app.logger.error(f"Error saving progress: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+
+@api_bp.route('/progress', methods=['GET'])
+@limiter.limit("30 per minute")
+@require_auth
+def get_user_progress() -> Union[Response, Tuple[Response, int]]:
+    """Get all progress for the authenticated user."""
+    try:
+        results = get_progress(g.user_id)
+        return jsonify({'success': True, 'results': results})
+    except Exception as e:
+        current_app.logger.error(f"Error fetching progress: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+
+@api_bp.route('/progress/sync', methods=['POST'])
+@limiter.limit("5 per minute")
+@require_auth
+def sync_user_progress() -> Union[Response, Tuple[Response, int]]:
+    """Bulk upload localStorage results for the authenticated user."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        try:
+            sync_req = SyncRequest(**data)
+        except ValidationError as e:
+            return jsonify({'success': False, 'error': str(e.errors()[0]['msg'])}), 400
+
+        sync_progress(g.user_id, [e.model_dump() for e in sync_req.entries])
+        return jsonify({'success': True, 'message': f'Synced {len(sync_req.entries)} entries'})
+    except Exception as e:
+        current_app.logger.error(f"Error syncing progress: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 
 @api_bp.route('/health', methods=['GET'])
