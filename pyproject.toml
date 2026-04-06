@@ -1,0 +1,29 @@
+[project]
+name = "dailyintegral"
+version = "0.1.0"
+description = "Daily Integral Challenge - a calculus practice web app"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "antlr4-python3-runtime==4.11.1",
+    "flask==3.1.2",
+    "flask-cors==6.0.2",
+    "flask-limiter==4.1.1",
+    "gunicorn==23.0.0",
+    "pydantic==2.12.5",
+    "sympy==1.14.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.2",
+    "ruff>=0.15.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]

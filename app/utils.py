@@ -1,8 +1,9 @@
 #pyright: basic
-import sympy as sp
-from typing import Optional
 import logging
 import re
+from typing import Optional
+
+import sympy as sp
 
 logger = logging.getLogger(__name__)
 

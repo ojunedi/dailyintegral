@@ -1,8 +1,9 @@
+import logging
+
 from flask import Flask
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import logging
 
 from app.config import get_config
 
@@ -29,7 +30,28 @@ def create_app(env_name=None) -> Flask:
     from app.api import api_bp
     app.register_blueprint(api_bp)
 
+    # Custom error handlers
+    register_error_handlers(app)
+
     return app
+
+
+def register_error_handlers(app: Flask) -> None:
+    """Register JSON error handlers for common HTTP errors."""
+    from flask import jsonify
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return jsonify({"success": False, "error": "Not found"}), 404
+
+    @app.errorhandler(500)
+    def internal_error(e):
+        app.logger.error(f"Internal server error: {e}")
+        return jsonify({"success": False, "error": "Internal server error"}), 500
+
+    @app.errorhandler(429)
+    def rate_limited(e):
+        return jsonify({"success": False, "error": "Rate limit exceeded. Try again later."}), 429
 
 
 def configure_logging(app: Flask) -> None:

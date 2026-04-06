@@ -6,11 +6,11 @@ Uses Flask's test client with a real SQLite test database.
 import json
 import os
 import sqlite3
-import pytest
 from datetime import date
 
-from app import create_app
+import pytest
 
+from app import create_app
 
 TEST_DB = os.path.join(os.path.dirname(__file__), 'test_integrals.db')
 

@@ -3,12 +3,13 @@ Tests for Pydantic models and API validation.
 """
 import pytest
 from pydantic import ValidationError
+
 from app.models import (
+    HealthResponse,
     ProblemModel,
+    ProblemResponse,
     SubmissionRequest,
     SubmissionResponse,
-    ProblemResponse,
-    HealthResponse
 )
 
 

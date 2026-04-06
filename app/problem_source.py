@@ -1,8 +1,9 @@
-import sqlite3
 import json
+import sqlite3
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from datetime import date, datetime
+from datetime import date
+from typing import Any, Dict, Optional
+
 
 class ProblemSource(ABC):
     """
@@ -100,10 +101,10 @@ class DatabaseProblemSource(BaseProblemSource):
     def format_problem(self, problem: Dict[str, Any]) -> Dict[str, Any]:
         """
         Format the problem data from database, parsing JSON fields.
-        
+
         Args:
             problem: Raw problem data from database
-            
+
         Returns:
             dict: Formatted problem dictionary with parsed JSON fields
         """
@@ -115,7 +116,7 @@ class DatabaseProblemSource(BaseProblemSource):
                 # If parsing fails, fall back to empty list
                 print(f"Error parsing progressive_hints: {e}")
                 problem['progressive_hints'] = []
-        
+
         # Fix LaTeX backslash escaping issues
         latex_fields = ['solution', 'latex_problem', 'latex_solution']
         for field in latex_fields:
@@ -124,7 +125,7 @@ class DatabaseProblemSource(BaseProblemSource):
                 value = problem[field]
                 value = value.replace('\\\\', '\\')
                 problem[field] = value
-        
+
         return problem
 
     def get_random_problem(self) -> Optional[Dict[str, Any]]:

@@ -2,9 +2,10 @@
 """
 Pydantic models for request/response validation.
 """
-from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import date
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ProblemModel(BaseModel):
