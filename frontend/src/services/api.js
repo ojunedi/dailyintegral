@@ -1,6 +1,18 @@
 import axios from 'axios'
+import { supabase } from './supabase'
 
 const API_BASE_URL = '/api'
+
+const authAxios = axios.create({ baseURL: API_BASE_URL })
+
+// Attach JWT to authenticated requests
+authAxios.interceptors.request.use(async (config) => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`
+  }
+  return config
+})
 
 export const apiService = {
   async getTodayProblem() {
@@ -34,5 +46,20 @@ export const apiService = {
       console.error('Health check failed:', error)
       throw new Error('API health check failed')
     }
-  }
+  },
+
+  async saveProgress(entry) {
+    const response = await authAxios.post('/progress', entry)
+    return response.data
+  },
+
+  async getProgress() {
+    const response = await authAxios.get('/progress')
+    return response.data
+  },
+
+  async syncProgress(entries) {
+    const response = await authAxios.post('/progress/sync', { entries })
+    return response.data
+  },
 }

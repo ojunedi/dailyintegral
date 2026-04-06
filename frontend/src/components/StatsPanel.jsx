@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
-import { aggregateStats } from '../services/statsStorage'
+import { getResults, computeStats, aggregateStats } from '../services/statsStorage'
 import CalendarGrid from './CalendarGrid'
 
-function StatsPanel({ isOpen, onClose }) {
+function StatsPanel({ isOpen, onClose, session }) {
   const [stats, setStats] = useState(null)
   const now = new Date()
   const [calMonth, setCalMonth] = useState(now.getMonth())
   const [calYear, setCalYear] = useState(now.getFullYear())
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return
+    let cancelled = false
+
+    if (session) {
+      // Async fetch from server
+      getResults(session).then(results => {
+        if (!cancelled) setStats(computeStats(results))
+      })
+    } else {
       setStats(aggregateStats())
     }
-  }, [isOpen])
+
+    return () => { cancelled = true }
+  }, [isOpen, session])
 
   if (!isOpen) return null
 

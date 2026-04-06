@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { MathJaxContext } from 'better-react-mathjax'
 import ProblemDisplay from './components/ProblemDisplay'
 import AnswerInput from './components/AnswerInput'
 import ResultMessage from './components/ResultMessage'
 import ProgressiveHint from './components/ProgressiveHint'
+import AuthModal from './components/AuthModal'
 import { apiService } from './services/api'
+import { useAuth } from './hooks/useAuth'
+import { getAllLocalResults } from './services/statsStorage'
 import StatsPanel from './components/StatsPanel'
 
 function App() {
+  const { user, session, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth()
   const [problem, setProblem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -25,12 +29,30 @@ function App() {
     return saved ? parseInt(saved, 10) : 0
   })
   const [statsOpen, setStatsOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
+  const hasSynced = useRef(false)
 
   const getTodayKey = () => new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     loadProblem()
   }, [])
+
+  // Sync localStorage to server on first sign-in
+  useEffect(() => {
+    if (!session || hasSynced.current) return
+    hasSynced.current = true
+
+    const localResults = getAllLocalResults()
+    if (localResults.length > 0) {
+      const validEntries = localResults.filter(r => r.problem_id != null)
+      if (validEntries.length > 0) {
+        apiService.syncProgress(validEntries).catch(err =>
+          console.error('Failed to sync localStorage to server:', err)
+        )
+      }
+    }
+  }, [session])
 
   const loadProblem = async () => {
     try {
@@ -78,6 +100,16 @@ function App() {
           problem_id: problem?.id,
         }
         localStorage.setItem(`daily-result-${getTodayKey()}`, JSON.stringify(enrichedResult))
+
+        // Save to server if logged in (fire-and-forget)
+        if (session) {
+          apiService.saveProgress({
+            date: getTodayKey(),
+            problem_id: problem?.id,
+            is_correct: response.is_correct,
+            difficulty: problem?.difficulty,
+          }).catch(err => console.error('Failed to save progress to server:', err))
+        }
       }
 
       // Update streak on correct answer (daily mode only)
@@ -113,7 +145,7 @@ function App() {
     },
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="app">
         <div className="container">
@@ -173,6 +205,15 @@ function App() {
               <button className="stats-toggle-button" onClick={() => setStatsOpen(true)}>
                 Stats
               </button>
+              {user ? (
+                <button className="auth-header-btn" onClick={signOut} title={user.email}>
+                  {user.email?.[0]?.toUpperCase() ?? '?'}
+                </button>
+              ) : (
+                <button className="auth-header-btn auth-signin-btn" onClick={() => setAuthOpen(true)}>
+                  Sign In
+                </button>
+              )}
             </div>
           </header>
 
@@ -203,7 +244,14 @@ function App() {
             </div>
           )}
         </div>
-        <StatsPanel isOpen={statsOpen} onClose={() => setStatsOpen(false)} />
+        <StatsPanel isOpen={statsOpen} onClose={() => setStatsOpen(false)} session={session} />
+        <AuthModal
+          isOpen={authOpen}
+          onClose={() => setAuthOpen(false)}
+          onSignIn={signIn}
+          onSignUp={signUp}
+          onGoogleSignIn={signInWithGoogle}
+        />
       </div>
     </MathJaxContext>
   )

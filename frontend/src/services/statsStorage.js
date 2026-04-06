@@ -1,10 +1,12 @@
+import { apiService } from './api'
+
 const RESULT_PREFIX = 'daily-result-'
 
 /**
  * Scans localStorage for all daily result entries.
  * Returns array of { date, is_correct, difficulty, problem_id }
  */
-export function getAllResults() {
+export function getAllLocalResults() {
   const results = []
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
@@ -27,11 +29,38 @@ export function getAllResults() {
 }
 
 /**
- * Aggregates stats from all stored results.
+ * Fetch results from the server for authenticated users.
  */
-export function aggregateStats() {
-  const results = getAllResults()
+async function getServerResults() {
+  const response = await apiService.getProgress()
+  if (!response.success) return []
+  return response.results.map(r => ({
+    date: r.date,
+    is_correct: r.is_correct,
+    difficulty: r.difficulty,
+    problem_id: r.problem_id,
+  }))
+}
 
+/**
+ * Get results from the appropriate source based on auth state.
+ */
+export async function getResults(session) {
+  if (session) {
+    try {
+      return await getServerResults()
+    } catch {
+      // Fall back to localStorage on network error
+      return getAllLocalResults()
+    }
+  }
+  return getAllLocalResults()
+}
+
+/**
+ * Aggregates stats from a results array.
+ */
+export function computeStats(results) {
   const totalAttempted = results.length
   const totalCorrect = results.filter(r => r.is_correct).length
   const accuracyRate = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0
@@ -52,8 +81,6 @@ export function aggregateStats() {
     resultsByDate[r.date] = { is_correct: r.is_correct, difficulty: r.difficulty }
   }
 
-  // Calculate currentStreak and bestStreak from the sorted results array.
-  // A streak is consecutive calendar days with correct answers.
   const { currentStreak, bestStreak } = calculateStreaks(results)
 
   return {
@@ -68,21 +95,16 @@ export function aggregateStats() {
 }
 
 /**
- * Given a sorted array of results ({ date, is_correct, ... }),
- * calculate the current streak and best streak.
- *
- * A streak = consecutive calendar days where is_correct === true.
- * "Current streak" counts backwards from today (or yesterday if today has no entry yet).
- * "Best streak" is the longest streak ever achieved.
- *
- * Return { currentStreak: number, bestStreak: number }
+ * Synchronous aggregation from localStorage only (backwards-compatible).
  */
+export function aggregateStats() {
+  return computeStats(getAllLocalResults())
+}
+
 function calculateStreaks(results) {
-
   if (!results.length) {
-    return {currentStreak: 0, bestStreak: 0}
+    return { currentStreak: 0, bestStreak: 0 }
   }
-
 
   let bestStreak = results[0]?.is_correct ? 1 : 0
   let currentStreak = 1;
@@ -104,5 +126,5 @@ function calculateStreaks(results) {
     currentStreak = 0;
   }
 
-  return { currentStreak, bestStreak};
+  return { currentStreak, bestStreak }
 }
