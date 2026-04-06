@@ -19,6 +19,11 @@ class Config:
         'http://127.0.0.1:5000',
     ]
 
+    # Supabase
+    SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+    SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+    SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+
 
 class DevelopmentConfig(Config):
     """Development configuration — debug mode on, verbose logging."""
