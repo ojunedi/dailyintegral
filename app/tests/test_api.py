@@ -87,6 +87,18 @@ def client():
         yield c
 
 
+@pytest.fixture()
+def rate_limited_client():
+    """Client with rate limiting enabled (normally disabled in testing)."""
+    os.environ['TEST_DATABASE_PATH'] = TEST_DB
+    os.environ['DATABASE_PATH'] = TEST_DB
+    app = create_app('testing')
+    app.config['DATABASE_PATH'] = TEST_DB
+    app.config['RATELIMIT_ENABLED'] = True
+    with app.test_client() as c:
+        yield c
+
+
 # ── Health endpoint ──────────────────────────────────────────────────
 
 class TestHealthEndpoint:
@@ -200,3 +212,30 @@ class TestSubmitEndpoint:
             'problem': problem,
         })
         assert resp.status_code == 400
+
+
+# ── Rate limiting ────────────────────────────────────────────────────
+
+class TestRateLimiting:
+
+    def _get_problem(self, client):
+        return client.get('/api/problem').get_json()['problem']
+
+    def test_submit_rate_limit_triggers_at_21(self, rate_limited_client):
+        """Submit endpoint should return 429 after 20 requests per minute."""
+        client = rate_limited_client
+        problem = self._get_problem(client)
+        payload = {'answer': r'x + C', 'problem': problem}
+
+        for i in range(20):
+            resp = client.post('/api/submit', json=payload)
+            assert resp.status_code != 429, f"Rate limited too early on request {i + 1}"
+
+        # 21st request should be rate limited
+        resp = client.post('/api/submit', json=payload)
+        assert resp.status_code == 429
+
+    def test_health_not_rate_limited_at_submit_limit(self, rate_limited_client):
+        self.test_submit_rate_limit_triggers_at_21(rate_limited_client)
+        resp = rate_limited_client.get('/api/health')
+        assert resp.status_code == 200
