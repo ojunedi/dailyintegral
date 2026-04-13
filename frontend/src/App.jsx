@@ -8,6 +8,7 @@ import AuthModal from './components/AuthModal'
 import { apiService } from './services/api'
 import { useAuth } from './hooks/useAuth'
 import { getAllLocalResults } from './services/statsStorage'
+import { Analytics } from '@vercel/analytics/react'
 import StatsPanel from './components/StatsPanel'
 
 function App() {
@@ -183,7 +184,8 @@ function App() {
   }
 
   return (
-    <MathJaxContext config={mathJaxConfig}>
+    <>
+      <MathJaxContext config={mathJaxConfig}>
       <div className="app">
         <div className="container">
           <header className="header">
@@ -254,6 +256,8 @@ function App() {
         />
       </div>
     </MathJaxContext>
+    <Analytics />
+    </>
   )
 }
 
