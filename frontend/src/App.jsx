@@ -5,6 +5,7 @@ import AnswerInput from './components/AnswerInput'
 import ResultMessage from './components/ResultMessage'
 import ProgressiveHint from './components/ProgressiveHint'
 import AuthModal from './components/AuthModal'
+import UserMenu from './components/UserMenu'
 import { apiService } from './services/api'
 import { useAuth } from './hooks/useAuth'
 import { getAllLocalResults } from './services/statsStorage'
@@ -207,15 +208,11 @@ function App() {
               <button className="stats-toggle-button" onClick={() => setStatsOpen(true)}>
                 Stats
               </button>
-              {user ? (
-                <button className="auth-header-btn" onClick={signOut} title={user.email}>
-                  {user.email?.[0]?.toUpperCase() ?? '?'}
-                </button>
-              ) : (
-                <button className="auth-header-btn auth-signin-btn" onClick={() => setAuthOpen(true)}>
-                  Sign In
-                </button>
-              )}
+              <UserMenu
+                user={user}
+                onSignIn={() => setAuthOpen(true)}
+                onSignOut={signOut}
+              />
             </div>
           </header>
 

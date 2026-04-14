@@ -1324,9 +1324,13 @@ math-field {
 }
 
 /* ============================================
-   AUTH HEADER BUTTON
+   USER MENU
    ============================================ */
-.auth-header-btn {
+.um-container {
+  position: relative;
+}
+
+.um-signin-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1342,24 +1346,145 @@ math-field {
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--transition-base);
-  min-width: 32px;
   min-height: 32px;
 }
 
-.auth-header-btn:hover {
+.um-signin-pill:hover {
   background: rgba(0, 255, 245, 0.08);
   border-color: var(--neon-cyan);
   box-shadow: var(--glow-cyan);
 }
 
-/* Logged-in avatar circle */
-.auth-header-btn:not(.auth-signin-btn) {
-  width: 32px;
-  height: 32px;
-  padding: 0;
+.um-avatar {
+  position: relative;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(0, 255, 245, 0.12);
-  font-size: 0.85rem;
+  border: none;
+  background: rgba(0, 255, 245, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.um-avatar:hover {
+  background: rgba(0, 255, 245, 0.18);
+}
+
+.um-avatar:hover .um-avatar-ring {
+  opacity: 1;
+}
+
+.um-avatar-letter {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--neon-cyan);
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 12px rgba(0, 255, 245, 0.5);
+}
+
+.um-avatar-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--neon-cyan);
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+  box-shadow: 0 0 8px rgba(0, 255, 245, 0.3);
+}
+
+/* Dropdown */
+.um-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 255, 245, 0.12);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated), 0 0 30px rgba(0, 255, 245, 0.06);
+  padding: var(--space-md);
+  z-index: 1000;
+  animation: umDropIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes umDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.um-dropdown-arrow {
+  position: absolute;
+  top: -5px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  background: var(--bg-card);
+  border-left: 1px solid rgba(0, 255, 245, 0.12);
+  border-top: 1px solid rgba(0, 255, 245, 0.12);
+  transform: rotate(45deg);
+}
+
+.um-user-info {
+  padding: var(--space-xs) var(--space-xs);
+}
+
+.um-user-name {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.um-user-email {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.um-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: var(--space-sm) 0;
+}
+
+.um-signout-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-xs);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.um-signout-btn:hover {
+  color: var(--neon-pink);
+  background: rgba(255, 46, 99, 0.08);
 }
 
 /* ============================================

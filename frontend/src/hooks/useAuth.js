@@ -7,18 +7,25 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Set up listener FIRST so we catch the token exchange event
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
+
+        // Clear hash fragment after successful sign-in from OAuth redirect
+        if (event === 'SIGNED_IN' && window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname)
+        }
       }
     )
 
-    // Also check for existing session on mount
+    // Check for existing session (covers page refresh with stored session)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+      // Only update if onAuthStateChange hasn't already fired
+      setSession(prev => prev ?? session)
+      setUser(prev => prev ?? session?.user ?? null)
       setLoading(false)
     })
 
