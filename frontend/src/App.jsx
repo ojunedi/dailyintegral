@@ -89,9 +89,17 @@ function App() {
     if (!userAnswer.trim()) return
 
     try {
-      setSubmitted(true)
       const response = await apiService.submitAnswer(userAnswer, problem)
       setResult(response)
+
+      // A malformed-LaTeX / processing error comes back as a response that was never
+      // actually graded (e.g. { success: false, error: '...' }). In daily mode we must NOT
+      // consume the user's single attempt for these — leave the input visible, lock nothing,
+      // and let them fix their answer and resubmit.
+      if (!response.success) return
+
+      // Past this point the answer was genuinely graded — commit it as the daily attempt.
+      setSubmitted(true)
 
       // In daily mode, lock after submission and persist enriched result
       if (!debugMode) {
@@ -220,6 +228,7 @@ function App() {
 
           {!submitted ? (
             <>
+              {result && !result.success && <ResultMessage result={result} />}
               <ProgressiveHint hints={problem?.progressive_hints} />
               <AnswerInput
                 value={userAnswer}

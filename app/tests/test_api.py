@@ -200,6 +200,22 @@ class TestSubmitEndpoint:
         assert data['success'] is True
         assert data['is_correct'] is True
 
+    def test_unparseable_answer_is_not_graded(self, client):
+        # Malformed LaTeX (unbalanced brace) that still contains +C so it passes the
+        # constant-of-integration check and reaches the parser. The parser fails, so the
+        # response must be flagged success=False — NOT a graded incorrect answer.
+        # The frontend relies on this distinction to allow a retry instead of locking
+        # the daily attempt.
+        problem = self._get_problem(client)
+        resp = client.post('/api/submit', json={
+            'answer': r'\frac{x}{ + C',
+            'problem': problem,
+        })
+        data = resp.get_json()
+        assert data['success'] is False
+        assert data['is_correct'] is False
+        assert 'parse' in data['error'].lower()
+
     def test_no_body_returns_error(self, client):
         resp = client.post('/api/submit', content_type='application/json')
         assert resp.status_code in (400, 500)
