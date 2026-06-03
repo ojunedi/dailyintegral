@@ -226,4 +226,12 @@ logs
 *.tmp
 *.temp
 hello
+
+# Local environment variables
+.env.local
+.env.*.local
+
+# Claude Code settings
 .claude/
+CLAUDE.md
+CLAUDE.local.md
