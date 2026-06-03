@@ -115,6 +115,9 @@ def parse_latex_safely(latex_str: str, is_indefinite: bool = True) -> Optional[s
         latex_str = latex_str.strip()
 
         # Normalize function names to proper LaTeX commands using regex, avoiding overlaps
+        # Fix \sqrt without braces: \sqrt2 -> \sqrt{2}, \sqrtx -> \sqrt{x}
+        latex_str = re.sub(r'\\sqrt([^{\[\s\\])', r'\\sqrt{\1}', latex_str)
+
         # Fix previously split forms like "\arc\sin(x)" -> "\arcsin(x)"
         latex_str = re.sub(r"\\arc\\(sin|cos|tan|sec|csc|cot)\b", r"\\arc\1", latex_str)
 
