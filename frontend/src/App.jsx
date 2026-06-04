@@ -8,7 +8,7 @@ import AuthModal from './components/AuthModal'
 import UserMenu from './components/UserMenu'
 import { apiService } from './services/api'
 import { useAuth } from './hooks/useAuth'
-import { getAllLocalResults } from './services/statsStorage'
+import { getAllLocalResults, aggregateStats } from './services/statsStorage'
 import { Analytics } from '@vercel/analytics/react'
 import StatsPanel from './components/StatsPanel'
 
@@ -22,19 +22,14 @@ function App() {
   const [result, setResult] = useState(null)
   const [debugMode, setDebugMode] = useState(false)
   const [dailyLocked, setDailyLocked] = useState(false)
-  const [streak, setStreak] = useState(() => {
-    const saved = localStorage.getItem('integral-streak')
-    return saved ? parseInt(saved, 10) : 0
-  })
-  const [bestStreak, setBestStreak] = useState(() => {
-    const saved = localStorage.getItem('best-streak')
-    return saved ? parseInt(saved, 10) : 0
-  })
+  const [streak, setStreak] = useState(() => aggregateStats().currentStreak)
+  const [bestStreak, setBestStreak] = useState(() => aggregateStats().bestStreak)
   const [statsOpen, setStatsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const hasSynced = useRef(false)
 
-  const getTodayKey = () => new Date().toISOString().split('T')[0]
+  // Use local date (YYYY-MM-DD) so the key doesn't flip at 8pm for UTC-4 users
+  const getTodayKey = () => new Date().toLocaleDateString('sv')
 
   useEffect(() => {
     loadProblem()
@@ -70,9 +65,16 @@ function App() {
         if (!response.debug_mode) {
           const savedResult = localStorage.getItem(`daily-result-${getTodayKey()}`)
           if (savedResult) {
-            setSubmitted(true)
-            setResult(JSON.parse(savedResult))
-            setDailyLocked(true)
+            const parsed = JSON.parse(savedResult)
+            // Guard: only restore if the saved result belongs to today's problem
+            if (parsed.problem_id === response.problem.id) {
+              setSubmitted(true)
+              setResult(parsed)
+              setDailyLocked(true)
+            } else {
+              // Stale result from a different problem — clear it
+              localStorage.removeItem(`daily-result-${getTodayKey()}`)
+            }
           }
         }
       } else {
@@ -122,16 +124,11 @@ function App() {
         }
       }
 
-      // Update streak on correct answer (daily mode only)
-      if (response.is_correct && !debugMode) {
-        const newStreak = streak + 1
-        setStreak(newStreak)
-        localStorage.setItem('integral-streak', newStreak.toString())
-
-        if (newStreak > bestStreak) {
-          setBestStreak(newStreak)
-          localStorage.setItem('best-streak', newStreak.toString())
-        }
+      // Recompute streak from full history after saving (daily mode only)
+      if (!debugMode) {
+        const { currentStreak, bestStreak: newBest } = aggregateStats()
+        setStreak(currentStreak)
+        setBestStreak(newBest)
       }
     } catch (err) {
       setResult({ success: false, error: err.message })
