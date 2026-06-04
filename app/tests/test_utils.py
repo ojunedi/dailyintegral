@@ -1,3 +1,4 @@
+import pytest
 import sympy as sp
 from sympy import Rational, cos, log, pi, sin
 from sympy.core import Symbol
@@ -373,3 +374,120 @@ def test_definite_integral_does_not_require_c():
     # for definite integrals, the caller should skip the check entirely
     parsed = parse_latex_safely(definite_answer, is_indefinite=False)
     assert parsed is not None
+
+
+# ── Parser normalizations ────────────────────────────────────────────
+
+@pytest.mark.parametrize("shorthand,canonical", [
+    # \sqrt without braces — the class of bugs that caused the \sqrt2 incident
+    (r'\sqrt2',        r'\sqrt{2}'),
+    (r'\sqrt3',        r'\sqrt{3}'),
+    (r'\sqrt5',        r'\sqrt{5}'),
+    (r'\sqrtx',        r'\sqrt{x}'),
+    (r'\sqrtC',        r'\sqrt{C}'),
+    # trig functions without backslash
+    (r'sin(x)',        r'\sin(x)'),
+    (r'cos(x)',        r'\cos(x)'),
+    (r'ln(x)',         r'\ln(x)'),
+    # inverse trig without backslash
+    (r'arcsin(x)',     r'\arcsin(x)'),
+    (r'arctan(x)',     r'\arctan(x)'),
+    # split \arc\sin form (was produced by naive replacements)
+    (r'\arc\sin(x)',   r'\arcsin(x)'),
+    (r'\arc\cos(x)',   r'\arccos(x)'),
+    (r'\arc\tan(x)',   r'\arctan(x)'),
+])
+def test_shorthand_normalizes_to_canonical(shorthand, canonical):
+    """Shorthand/malformed input must parse to the same expression as the canonical form."""
+    expr_s = parse_latex_safely(shorthand)
+    expr_c = parse_latex_safely(canonical)
+    assert expr_s is not None, f"shorthand '{shorthand}' failed to parse"
+    assert expr_c is not None, f"canonical '{canonical}' failed to parse"
+    assert sp.simplify(expr_s - expr_c) == 0, (
+        f"'{shorthand}' parsed to {expr_s!r} but '{canonical}' parsed to {expr_c!r}"
+    )
+
+
+@pytest.mark.parametrize("latex_input", [
+    r'\sqrt{x}',
+    r'\sqrt{x^2}',
+    r'\sqrt{x^2+1}',
+    r'\sqrt{x+1}',
+    r'\sqrt{\frac{x}{2}}',
+    r'\sqrt2',
+    r'\sqrt3',
+    r'\sqrtx',
+    r'\sqrtC',
+    r'2\sqrt{x}',
+    r'\frac{1}{\sqrt{x}}',
+    r'\sqrt{x} + \sqrt{x+1}',
+    r'\sqrt{\sqrt{x}}',
+    r'\sqrt[3]{x}',
+    r'\sqrt{x^2+2x+1}',
+    r'\sqrt{-1}',
+    r'\sqrt2 + \sqrtx',
+    r'\frac{\sqrt{x}}{2}',
+    r'x + \sqrt{x^2 + 1}',
+])
+def test_sqrt_corpus_never_crashes(latex_input):
+    """Every sqrt variant must either parse successfully or return None — never raise."""
+    result = parse_latex_safely(latex_input)
+    assert result is None or isinstance(result, sp.Basic)
+
+
+# ── Hypothesis fuzz: parse_latex_safely must never raise ────────────
+
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
+
+
+@given(st.text(max_size=150))
+@settings(max_examples=300, suppress_health_check=[HealthCheck.too_slow], deadline=None)
+def test_parse_latex_never_raises(s):
+    """For any string input, parse_latex_safely must return None or a SymPy Expr — never raise."""
+    result = parse_latex_safely(s)
+    assert result is None or isinstance(result, sp.Basic)
+
+
+@given(st.text(alphabet=r'\{}[]^_abcdefghijklmnopqrstuvwxyz0123456789+- /().,', max_size=100))
+@settings(max_examples=500, suppress_health_check=[HealthCheck.too_slow], deadline=None)
+def test_parse_latex_latex_like_never_raises(s):
+    """Fuzz with latex-character alphabet — more likely to hit the parser internals."""
+    result = parse_latex_safely(s)
+    assert result is None or isinstance(result, sp.Basic)
+
+
+# ── sympy_to_latex ───────────────────────────────────────────────────
+
+from app.utils import sympy_to_latex
+
+
+def test_sympy_to_latex_appends_plus_c():
+    x, C = sp.Symbol('x'), sp.Symbol('C')
+    result = sympy_to_latex(x**3 / 3 + C, is_indefinite=True)
+    assert result.endswith('+ C'), f"Expected '+ C' at end, got: {result!r}"
+
+
+def test_sympy_to_latex_no_c_unchanged():
+    x = sp.Symbol('x')
+    result = sympy_to_latex(x**3 / 3, is_indefinite=True)
+    assert 'C' not in result
+
+
+def test_sympy_to_latex_strips_c_for_definite():
+    x, C = sp.Symbol('x'), sp.Symbol('C')
+    result = sympy_to_latex(x**3 / 3 + C, is_indefinite=False)
+    assert 'C' not in result
+
+
+def test_sympy_to_latex_negative_c():
+    x, C = sp.Symbol('x'), sp.Symbol('C')
+    result = sympy_to_latex(x**3 / 3 - C, is_indefinite=True)
+    assert '- C' in result, f"Expected '- C', got: {result!r}"
+
+
+def test_sympy_to_latex_returns_valid_string_on_any_expr():
+    x = sp.Symbol('x')
+    for expr in [sp.sin(x), sp.cos(x), x**2 + x + 1, sp.log(x), sp.sqrt(x), sp.Integer(4)]:
+        result = sympy_to_latex(expr)
+        assert isinstance(result, str) and len(result) > 0

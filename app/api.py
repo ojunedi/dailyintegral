@@ -168,7 +168,7 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
         current_app.logger.info(f"Parsed correct answer: {true_answer}")
 
         # Validate the answer
-        is_correct: bool = is_equivalent_up_to_constant(user_answer, true_answer)
+        is_correct: bool = is_equivalent_up_to_constant(user_answer, true_answer, is_indefinite=is_indefinite)
 
         response = SubmissionResponse(
             success=True,
@@ -195,7 +195,7 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
 def save_user_progress() -> Union[Response, Tuple[Response, int]]:
     """Save a daily result for the authenticated user."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 
@@ -230,7 +230,7 @@ def get_user_progress() -> Union[Response, Tuple[Response, int]]:
 def sync_user_progress() -> Union[Response, Tuple[Response, int]]:
     """Bulk upload localStorage results for the authenticated user."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({'success': False, 'error': 'No data provided'}), 400
 

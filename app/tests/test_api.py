@@ -255,3 +255,102 @@ class TestRateLimiting:
         self.test_submit_rate_limit_triggers_at_21(rate_limited_client)
         resp = rate_limited_client.get('/api/health')
         assert resp.status_code == 200
+
+
+# ── Definite integral submit ─────────────────────────────────────────
+
+# A minimal problem object for a definite integral (no DB required; the submit
+# endpoint takes the problem in the request body and validates with Pydantic).
+DEFINITE_PROBLEM = {
+    'id': 99,
+    'date': '2000-01-01',
+    'problem': r'\int_0^2 x\,dx',
+    'solution': r'2',
+    'difficulty': 'easy',
+    'integral_type': 'definite',
+}
+
+
+class TestSubmitDefiniteIntegral:
+
+    def test_correct_answer_without_c(self, client):
+        resp = client.post('/api/submit', json={
+            'answer': '2',
+            'problem': DEFINITE_PROBLEM,
+        })
+        data = resp.get_json()
+        assert resp.status_code == 200
+        assert data['success'] is True
+        assert data['is_correct'] is True
+
+    def test_wrong_answer(self, client):
+        resp = client.post('/api/submit', json={
+            'answer': '5',
+            'problem': DEFINITE_PROBLEM,
+        })
+        data = resp.get_json()
+        assert data['success'] is True
+        assert data['is_correct'] is False
+
+    def test_answer_with_c_still_accepted(self, client):
+        # Definite integrals don't require +C, but having it shouldn't crash
+        # (the +C gets parsed as part of the expression and compared)
+        resp = client.post('/api/submit', json={
+            'answer': '2 + C',
+            'problem': DEFINITE_PROBLEM,
+        })
+        data = resp.get_json()
+        assert resp.status_code == 200
+        assert data['success'] is True
+
+    def test_numeric_expression_equivalent_form(self, client):
+        resp = client.post('/api/submit', json={
+            'answer': r'\frac{4}{2}',
+            'problem': DEFINITE_PROBLEM,
+        })
+        data = resp.get_json()
+        assert resp.status_code == 200
+        assert data['success'] is True
+        assert data['is_correct'] is True
+
+
+# ── Unparseable correct answer in DB ────────────────────────────────
+
+class TestSubmitUnparseableSolution:
+
+    def _make_problem(self, solution: str) -> dict:
+        return {
+            'id': 1,
+            'date': date.today().strftime('%Y-%m-%d'),
+            'problem': r'\int x^2 dx',
+            'solution': solution,
+            'difficulty': 'easy',
+            'integral_type': 'indefinite',
+        }
+
+    def test_unparseable_solution_returns_500(self, client):
+        """When the stored solution can't be parsed the endpoint returns 500, not a wrong verdict."""
+        # r'\frac{x^3' is an incomplete fraction — confirmed to return None from parse_latex_safely.
+        resp = client.post('/api/submit', json={
+            'answer': r'\frac{x^3}{3} + C',
+            'problem': self._make_problem(r'\frac{x^3'),
+        })
+        data = resp.get_json()
+        assert resp.status_code == 500
+        assert data['success'] is False
+
+
+# ── Error handlers ───────────────────────────────────────────────────
+
+class TestErrorHandlers:
+
+    def test_404_returns_json(self, client):
+        resp = client.get('/api/nonexistent_endpoint_xyz')
+        assert resp.status_code == 404
+        data = resp.get_json()
+        assert data is not None
+        assert data['success'] is False
+
+    def test_method_not_allowed_on_post_only_endpoint(self, client):
+        resp = client.get('/api/submit')
+        assert resp.status_code in (405, 404)

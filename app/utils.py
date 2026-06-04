@@ -8,7 +8,11 @@ import sympy as sp
 logger = logging.getLogger(__name__)
 
 
-def is_equivalent_up_to_constant(user_answer: Optional[sp.Expr], correct_answer: Optional[sp.Expr]) -> bool:
+def is_equivalent_up_to_constant(
+    user_answer: Optional[sp.Expr],
+    correct_answer: Optional[sp.Expr],
+    is_indefinite: bool = True,
+) -> bool:
     """
     Check if the user's answer is equivalent to the correct answer up to a constant.
 
@@ -32,7 +36,10 @@ def is_equivalent_up_to_constant(user_answer: Optional[sp.Expr], correct_answer:
         # Find the variable in the expression (usually 'x' for integrals)
         variables = user_answer.free_symbols.union(correct_answer.free_symbols)
         if not variables:
-            # If no variables, both are constants - they're equivalent up to a constant
+            # Definite integrals produce specific numeric answers — require exact equality.
+            # Indefinite integrals: any two constants are interchangeable (they fold into +C).
+            if not is_indefinite:
+                return sp.simplify(user_answer - correct_answer) == 0
             return True
 
         # Filter out constant symbols and use main variable (typically 'x')
