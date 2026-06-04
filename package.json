@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@vercel/analytics": "^2.0.1",
-    "mathlive": "^0.107.0"
-  }
-}
