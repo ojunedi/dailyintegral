@@ -8,7 +8,7 @@ import AuthModal from './components/AuthModal'
 import UserMenu from './components/UserMenu'
 import { apiService } from './services/api'
 import { useAuth } from './hooks/useAuth'
-import { getAllLocalResults, aggregateStats } from './services/statsStorage'
+import { getAllLocalResults, aggregateStats, computeStats, clearLocalResults } from './services/statsStorage'
 import { Analytics } from '@vercel/analytics/react'
 import StatsPanel from './components/StatsPanel'
 
@@ -21,9 +21,10 @@ function App() {
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
   const [debugMode, setDebugMode] = useState(false)
-  const [dailyLocked, setDailyLocked] = useState(false)
-  const [streak, setStreak] = useState(() => aggregateStats().currentStreak)
-  const [bestStreak, setBestStreak] = useState(() => aggregateStats().bestStreak)
+  // Streak/result are derived per-identity in the identity effect below, never
+  // initialized from shared localStorage (which would leak across accounts).
+  const [streak, setStreak] = useState(0)
+  const [bestStreak, setBestStreak] = useState(0)
   const [statsOpen, setStatsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const hasSynced = useRef(false)
@@ -35,19 +36,28 @@ function App() {
     loadProblem()
   }, [])
 
-  // Sync localStorage to server on first sign-in
+  // On first sign-in, migrate anonymous localStorage progress into the account,
+  // then clear it so it can't leak into a different account on this browser.
   useEffect(() => {
-    if (!session || hasSynced.current) return
+    if (!session) {
+      // Signed out — allow the next sign-in to migrate its own anonymous progress.
+      hasSynced.current = false
+      return
+    }
+    if (hasSynced.current) return
     hasSynced.current = true
 
-    const localResults = getAllLocalResults()
-    if (localResults.length > 0) {
-      const validEntries = localResults.filter(r => r.problem_id != null)
-      if (validEntries.length > 0) {
-        apiService.syncProgress(validEntries).catch(err =>
+    const validEntries = getAllLocalResults().filter(r => r.problem_id != null)
+    if (validEntries.length > 0) {
+      apiService.syncProgress(validEntries)
+        .then(() => clearLocalResults())
+        .catch(err =>
+          // Keep the data on failure so it can retry on the next sign-in.
           console.error('Failed to sync localStorage to server:', err)
         )
-      }
+    } else {
+      // Nothing to migrate — clear any leftover anonymous results anyway.
+      clearLocalResults()
     }
   }, [session])
 
@@ -60,23 +70,6 @@ function App() {
       if (response.success) {
         setProblem(response.problem)
         setDebugMode(response.debug_mode || false)
-
-        // Check if user already submitted today's daily problem
-        if (!response.debug_mode) {
-          const savedResult = localStorage.getItem(`daily-result-${getTodayKey()}`)
-          if (savedResult) {
-            const parsed = JSON.parse(savedResult)
-            // Guard: only restore if the saved result belongs to today's problem
-            if (parsed.problem_id === response.problem.id) {
-              setSubmitted(true)
-              setResult(parsed)
-              setDailyLocked(true)
-            } else {
-              // Stale result from a different problem — clear it
-              localStorage.removeItem(`daily-result-${getTodayKey()}`)
-            }
-          }
-        }
       } else {
         setError(response.error || 'Failed to load problem')
       }
@@ -86,6 +79,89 @@ function App() {
       setLoading(false)
     }
   }
+
+  // Recompute streak from the server (logged-in source of truth).
+  const refreshStreakFromServer = async () => {
+    try {
+      const resp = await apiService.getProgress()
+      const results = resp.success ? resp.results : []
+      const stats = computeStats(results)
+      setStreak(stats.currentStreak)
+      setBestStreak(stats.bestStreak)
+    } catch (err) {
+      console.error('Failed to refresh streak from server:', err)
+    }
+  }
+
+  // Identity effect: once auth settles, reset any state from a previous identity and
+  // re-derive today's lock/result + streak for the CURRENT identity. This runs on
+  // login/logout (the SPA never remounts), which is what prevents account A's data
+  // from lingering in memory when account B signs in without a page refresh.
+  useEffect(() => {
+    if (authLoading || !problem || debugMode) return
+    let cancelled = false
+
+    // Clear previous identity's in-memory state.
+    setSubmitted(false)
+    setResult(null)
+    setUserAnswer('')
+    setStreak(0)
+    setBestStreak(0)
+
+    const todayKey = getTodayKey()
+
+    const derive = async () => {
+      if (session) {
+        // Logged in: the server is the single source of truth — never read localStorage.
+        try {
+          const resp = await apiService.getProgress()
+          if (cancelled) return
+          const results = resp.success ? resp.results : []
+
+          const todayEntry = results.find(r => r.date === todayKey)
+          if (todayEntry) {
+            setSubmitted(true)
+            setResult({
+              success: true,
+              is_correct: todayEntry.is_correct,
+              message: todayEntry.is_correct
+                ? "You solved today's problem!"
+                : "You already attempted today's problem.",
+              correct_answer: problem.solution,
+            })
+          }
+
+          const stats = computeStats(results)
+          setStreak(stats.currentStreak)
+          setBestStreak(stats.bestStreak)
+        } catch (err) {
+          console.error('Failed to load progress from server:', err)
+        }
+      } else {
+        // Anonymous: localStorage (single user per browser).
+        const savedResult = localStorage.getItem(`daily-result-${todayKey}`)
+        if (savedResult) {
+          try {
+            const parsed = JSON.parse(savedResult)
+            if (parsed.problem_id === problem.id) {
+              setSubmitted(true)
+              setResult(parsed)
+            } else {
+              localStorage.removeItem(`daily-result-${todayKey}`)
+            }
+          } catch {
+            localStorage.removeItem(`daily-result-${todayKey}`)
+          }
+        }
+        const stats = aggregateStats()
+        setStreak(stats.currentStreak)
+        setBestStreak(stats.bestStreak)
+      }
+    }
+
+    derive()
+    return () => { cancelled = true }
+  }, [session, authLoading, problem, debugMode])
 
   const handleSubmit = async () => {
     if (!userAnswer.trim()) return
@@ -103,32 +179,33 @@ function App() {
       // Past this point the answer was genuinely graded — commit it as the daily attempt.
       setSubmitted(true)
 
-      // In daily mode, lock after submission and persist enriched result
+      // Persist the daily attempt to the appropriate per-identity store.
       if (!debugMode) {
-        setDailyLocked(true)
-        const enrichedResult = {
-          ...response,
-          difficulty: problem?.difficulty,
-          problem_id: problem?.id,
-        }
-        localStorage.setItem(`daily-result-${getTodayKey()}`, JSON.stringify(enrichedResult))
-
-        // Save to server if logged in (fire-and-forget)
         if (session) {
-          apiService.saveProgress({
-            date: getTodayKey(),
-            problem_id: problem?.id,
-            is_correct: response.is_correct,
+          // Logged in: server is the source of truth. Save, then recompute streak from it.
+          try {
+            await apiService.saveProgress({
+              date: getTodayKey(),
+              problem_id: problem?.id,
+              is_correct: response.is_correct,
+              difficulty: problem?.difficulty,
+            })
+          } catch (err) {
+            console.error('Failed to save progress to server:', err)
+          }
+          await refreshStreakFromServer()
+        } else {
+          // Anonymous: localStorage.
+          const enrichedResult = {
+            ...response,
             difficulty: problem?.difficulty,
-          }).catch(err => console.error('Failed to save progress to server:', err))
+            problem_id: problem?.id,
+          }
+          localStorage.setItem(`daily-result-${getTodayKey()}`, JSON.stringify(enrichedResult))
+          const { currentStreak, bestStreak: newBest } = aggregateStats()
+          setStreak(currentStreak)
+          setBestStreak(newBest)
         }
-      }
-
-      // Recompute streak from full history after saving (daily mode only)
-      if (!debugMode) {
-        const { currentStreak, bestStreak: newBest } = aggregateStats()
-        setStreak(currentStreak)
-        setBestStreak(newBest)
       }
     } catch (err) {
       setResult({ success: false, error: err.message })
@@ -139,7 +216,6 @@ function App() {
     setUserAnswer('')
     setSubmitted(false)
     setResult(null)
-    setDailyLocked(false)
     loadProblem()
   }
 

@@ -29,6 +29,20 @@ export function getAllLocalResults() {
 }
 
 /**
+ * Removes all daily-result entries from localStorage.
+ * Used after migrating anonymous progress to the server so it can't later
+ * leak into a different account signed in on the same browser.
+ */
+export function clearLocalResults() {
+  const keys = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith(RESULT_PREFIX)) keys.push(key)
+  }
+  keys.forEach(k => localStorage.removeItem(k))
+}
+
+/**
  * Fetch results from the server for authenticated users.
  */
 async function getServerResults() {
