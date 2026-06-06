@@ -18,9 +18,11 @@ function HintDisplay({ children }) {
   const isPureLatex = text.trim().startsWith('\\')
 
   if (isPureLatex) {
-    // Render as display math
+    // Render as display math. `dynamic` is required so MathJax re-typesets when the
+    // hint content changes in place (Next/Previous navigation) — without it, production
+    // builds typeset only the first hint and leave the rest as raw LaTeX.
     return (
-      <MathJax>
+      <MathJax dynamic>
         {`$$${text}$$`}
       </MathJax>
     )
@@ -34,7 +36,7 @@ function HintDisplay({ children }) {
     // MathJax will process \(...\) as inline math
     const processed = text.replace(/\$([^$]+)\$/g, '\\($1\\)')
     return (
-      <MathJax inline>
+      <MathJax inline dynamic>
         {processed}
       </MathJax>
     )
