@@ -8,6 +8,8 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key-for-development-only')
     DATABASE_PATH = os.environ.get('DATABASE_PATH', os.path.join(_BASE_DIR, 'integrals.db'))
     DEBUG_MODE = False
+    # Where to read integral problems from: 'supabase' (Postgres) or 'sqlite' (local file).
+    PROBLEM_SOURCE = os.environ.get('PROBLEM_SOURCE', 'supabase')
     CORS_ORIGINS = [
         'http://localhost:5173',
         'http://localhost:5174',
@@ -36,6 +38,8 @@ class TestingConfig(Config):
     """Testing configuration — uses in-memory or test database."""
     TESTING = True
     DATABASE_PATH = os.environ.get('TEST_DATABASE_PATH', os.path.join(_BASE_DIR, 'test_integrals.db'))
+    # Tests run against local SQLite fixtures — never hit Supabase.
+    PROBLEM_SOURCE = 'sqlite'
     LOG_LEVEL = 'WARNING'
 
 

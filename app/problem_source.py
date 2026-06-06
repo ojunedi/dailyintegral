@@ -1,4 +1,5 @@
 import json
+import random
 import sqlite3
 from abc import ABC, abstractmethod
 from datetime import date
@@ -208,4 +209,110 @@ class DatabaseProblemSource(BaseProblemSource):
             # Log the error (in a real app, use proper logging)
             print(f"Database error: {e}")
 
+        return None
+
+
+class SupabaseProblemSource(BaseProblemSource):
+    """
+    A Supabase (Postgres) backed source of integral problems.
+
+    Drop-in replacement for DatabaseProblemSource that fetches from the
+    `integrals` table in Supabase instead of a local SQLite file. Reads use the
+    anon key (problems are public, RLS allows SELECT for anon/authenticated).
+
+    Behavioural parity with the SQLite source is intentional:
+      - the daily problem is chosen by the same `days_since_epoch % total` offset,
+        ordered by id (which the seed preserves) so a given day yields the same
+        problem as before the migration.
+      - the same backslash fix is applied to LaTeX fields, so grading is
+        byte-identical. `progressive_hints` arrives as native jsonb (already a
+        list), so it is NOT json-decoded here.
+    """
+
+    LATEX_FIELDS = ('solution', 'latex_problem', 'latex_solution')
+
+    def __init__(self, url: str, key: str):
+        super().__init__()
+        self.url = url
+        self.key = key
+
+    def _client(self):
+        # Imported lazily so the SQLite path (and tests that never touch Supabase)
+        # don't require the supabase package or network at import time.
+        from supabase import create_client
+        return create_client(self.url, self.key)
+
+    def format_problem(self, problem: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize a row from Supabase to match the app's expected shape."""
+        # jsonb comes back already parsed; just guarantee a list.
+        if not problem.get('progressive_hints'):
+            problem['progressive_hints'] = []
+
+        for field in self.LATEX_FIELDS:
+            value = problem.get(field)
+            if value:
+                problem[field] = value.replace('\\\\', '\\')
+
+        return problem
+
+    def _count(self, client) -> int:
+        resp = client.table('integrals').select('id', count='exact').execute()
+        return resp.count or 0
+
+    def _fetch_at_offset(self, client, offset: int) -> Optional[Dict[str, Any]]:
+        # range() is inclusive on both ends, so (offset, offset) returns one row.
+        resp = (
+            client.table('integrals')
+            .select('*')
+            .order('id')
+            .range(offset, offset)
+            .execute()
+        )
+        if resp.data:
+            return self.format_problem(resp.data[0])
+        return None
+
+    def get_daily_problem(self) -> Optional[Dict[str, Any]]:
+        """Deterministic daily problem, same selection logic as the SQLite source."""
+        try:
+            client = self._client()
+            total = self._count(client)
+            if total == 0:
+                return None
+            days_since_epoch = (date.today() - date(1970, 1, 1)).days
+            offset = days_since_epoch % total
+            return self._fetch_at_offset(client, offset)
+        except Exception as e:
+            print(f"Supabase error: {e}")
+        return None
+
+    def get_random_problem(self) -> Optional[Dict[str, Any]]:
+        """Random problem (debug mode). Postgrest can't ORDER BY random(), so we
+        pick a random offset over the row count instead."""
+        try:
+            client = self._client()
+            total = self._count(client)
+            if total == 0:
+                return None
+            return self._fetch_at_offset(client, random.randint(0, total - 1))
+        except Exception as e:
+            print(f"Supabase error: {e}")
+        return None
+
+    def get_today_problem(self) -> Optional[Dict[str, Any]]:
+        """Return the problem whose date == today, or None."""
+        try:
+            client = self._client()
+            today = date.today().strftime('%Y-%m-%d')
+            resp = (
+                client.table('integrals')
+                .select('*')
+                .eq('date', today)
+                .limit(1)
+                .execute()
+            )
+            if resp.data:
+                return self.format_problem(resp.data[0])
+        except Exception as e:
+            print(f"Supabase error: {e}")
         return None
