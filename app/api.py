@@ -16,7 +16,7 @@ from app.models import (
     SubmissionResponse,
     SyncRequest,
 )
-from app.problem_source import DatabaseProblemSource
+from app.problem_source import DatabaseProblemSource, SupabaseProblemSource
 from app.progress import get_progress, save_progress, sync_progress
 from app.utils import (
     has_constant_of_integration,
@@ -31,6 +31,16 @@ def _get_db_path():
     return current_app.config['DATABASE_PATH']
 
 
+def _get_problem_source():
+    """Build the configured problem source: Supabase (default) or local SQLite."""
+    if current_app.config.get('PROBLEM_SOURCE') == 'sqlite':
+        return DatabaseProblemSource(_get_db_path())
+    return SupabaseProblemSource(
+        current_app.config['SUPABASE_URL'],
+        current_app.config['SUPABASE_KEY'],
+    )
+
+
 @api_bp.route('/problem', methods=['GET'])
 def get_today_problem() -> Union[Response, Tuple[Response, int]]:
     """
@@ -41,7 +51,7 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
     """
     try:
         debug_mode = current_app.config.get('DEBUG_MODE', False)
-        problem_source = DatabaseProblemSource(_get_db_path())
+        problem_source = _get_problem_source()
 
         if debug_mode:
             problem_data = problem_source.get_random_problem()
