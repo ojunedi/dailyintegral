@@ -23,7 +23,7 @@ jobs:
         run: uv sync --group dev
 
       - name: Run backend tests
-        run: uv run pytest app/tests/ -v
+        run: uv run pytest app/tests/ migrations/tests/ -v
 
       - uses: actions/setup-node@v4
         with:
