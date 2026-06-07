@@ -74,6 +74,9 @@ EQUIVALENT = [
     (r"\frac{x}{2} - \frac{\sin(2x)}{4}", r"\frac{x}{2} - \frac{\sin(x)\cos(x)}{2} + C"),
     # ∫ x/(1+x^4) dx — arctan(x^2)/2, accepted with any added constant
     (r"\frac{1}{2}\arctan(x^2)", r"\frac{1}{2}\arctan(x^2) + 7 + C"),
+    # ∫ csc(x) dx — the two textbook forms. simplify() can't equate these; this
+    # only grades correct because of the numeric fallback in is_equivalent.
+    (r"\ln(\tan(\frac{x}{2}))", r"-\ln(\csc(x) + \cot(x)) + C"),
 ]
 
 

@@ -7,6 +7,60 @@ import sympy as sp
 
 logger = logging.getLogger(__name__)
 
+# Real sample points and tolerance for the numeric equality fallback. These are
+# the same values used by the upload gate's derivative check, so the gate and the
+# production grader agree by construction.
+_SAMPLE_POINTS = [-0.8, -0.5, -0.2, 0.2, 0.5, 0.8, 1.3, 1.7, 2.1, 2.6]
+_REL_TOL = 1e-6
+_MIN_SAMPLES = 4
+
+
+def _is_finite_complex(z: complex) -> bool:
+    import math
+    return math.isfinite(z.real) and math.isfinite(z.imag)
+
+
+def expressions_match_numerically(a: sp.Expr, b: sp.Expr) -> bool:
+    """Robust, conservative numeric equality test for two SymPy expressions.
+
+    Used as a fallback when sp.simplify() can't decide — differentiation and
+    simplification are incomplete, so a correct-but-hairy expression can slip
+    through symbolically. This evaluates instead:
+
+      - if either side has a free variable: sample real points and require enough
+        agreeing finite samples, with a single finite mismatch failing fast;
+      - if both are constants: compare evalf() directly.
+
+    A non-decidable / all-non-finite situation returns False (never a pass).
+    """
+    a = sp.sympify(a)
+    b = sp.sympify(b)
+    free = (a.free_symbols | b.free_symbols) - {sp.Symbol("C")}
+
+    if not free:
+        try:
+            av, bv = complex(a.evalf()), complex(b.evalf())
+        except (TypeError, ValueError):
+            return False
+        if not (_is_finite_complex(av) and _is_finite_complex(bv)):
+            return False
+        return abs(av - bv) <= _REL_TOL * max(1.0, abs(bv))
+
+    var = sorted(free, key=str)[0]
+    matched = 0
+    for p in _SAMPLE_POINTS:
+        try:
+            av = complex(a.subs(var, p).evalf())
+            bv = complex(b.subs(var, p).evalf())
+        except (TypeError, ValueError):
+            continue
+        if not (_is_finite_complex(av) and _is_finite_complex(bv)):
+            continue
+        if abs(av - bv) > _REL_TOL * max(1.0, abs(bv)):
+            return False
+        matched += 1
+    return matched >= _MIN_SAMPLES
+
 
 def is_equivalent_up_to_constant(
     user_answer: Optional[sp.Expr],
@@ -39,7 +93,10 @@ def is_equivalent_up_to_constant(
             # Definite integrals produce specific numeric answers — require exact equality.
             # Indefinite integrals: any two constants are interchangeable (they fold into +C).
             if not is_indefinite:
-                return sp.simplify(user_answer - correct_answer) == 0
+                if sp.simplify(user_answer - correct_answer) == 0:
+                    return True
+                # simplify can fail on hairy equal constants (nested radicals etc.)
+                return expressions_match_numerically(user_answer, correct_answer)
             return True
 
         # Filter out constant symbols and use main variable (typically 'x')
@@ -65,17 +122,19 @@ def is_equivalent_up_to_constant(
         if difference == 0:
             return True
 
-        # Method 2: Fallback - check if difference is constant
-        # This handles edge cases where derivatives might not work
+        # Method 2: check if the answers themselves differ only by a constant
         expr_difference = sp.simplify(user_answer - correct_answer)
         logger.info(f"Expression difference: {expr_difference}")
 
-        # Check if the difference contains no variables (i.e., is constant)
         # Exclude the constant symbol 'C' from consideration
         difference_vars = expr_difference.free_symbols - {sp.Symbol('C')}
-        is_constant = len(difference_vars) == 0
+        if len(difference_vars) == 0:
+            return True
 
-        return is_constant
+        # Method 3: numeric fallback — simplify is incomplete and can fail to
+        # crush an equal derivative difference to 0. Equivalence up to a constant
+        # means the derivatives match, so compare them numerically.
+        return expressions_match_numerically(user_derivative, correct_derivative)
 
     except Exception as e:
         logger.error(f"Error in equivalence checking: {e}")

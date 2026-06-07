@@ -3,7 +3,13 @@ import sympy as sp
 from sympy import Rational, cos, log, pi, sin
 from sympy.core import Symbol
 
-from app.utils import is_equivalent_up_to_constant, parse_latex_safely
+from app.utils import (
+    expressions_match_numerically,
+    is_equivalent_up_to_constant,
+    parse_latex_safely,
+)
+
+x = sp.Symbol("x")
 
 
 def test_is_equivalent_up_to_constant_basic():
@@ -491,3 +497,34 @@ def test_sympy_to_latex_returns_valid_string_on_any_expr():
     for expr in [sp.sin(x), sp.cos(x), x**2 + x + 1, sp.log(x), sp.sqrt(x), sp.Integer(4)]:
         result = sympy_to_latex(expr)
         assert isinstance(result, str) and len(result) > 0
+
+
+# ── numeric equality primitive + is_equivalent fallback ─────────────────────────
+
+class TestNumericPrimitive:
+    """expressions_match_numerically — the shared robust equality fallback."""
+
+    def test_equivalent_variable_expressions(self):
+        # sin(2x) and 2 sin x cos x are equal but written differently
+        assert expressions_match_numerically(sp.sin(2 * x), 2 * sp.sin(x) * sp.cos(x))
+
+    def test_nonequivalent_variable_expressions(self):
+        assert not expressions_match_numerically(x**2, x**3)
+
+    def test_equal_constants_different_form(self):
+        # sqrt(2)*pi/4 == pi/(2*sqrt(2))
+        assert expressions_match_numerically(sp.sqrt(2) * pi / 4, pi / (2 * sp.sqrt(2)))
+
+    def test_unequal_constants(self):
+        assert not expressions_match_numerically(pi / 2, pi / 3)
+
+
+def test_is_equivalent_numeric_fallback_rescues_simplify():
+    """Regression: the two textbook antiderivatives of csc(x) — ln|tan(x/2)| and
+    -ln|csc x + cot x| — are equivalent, but sp.simplify can't equate them. Before
+    the numeric fallback the grader wrongly returned False (a correct student
+    answer rejected); now it returns True."""
+    a = log(sp.tan(x / 2))
+    b = -log(sp.csc(x) + sp.cot(x))
+    assert is_equivalent_up_to_constant(a, b, is_indefinite=True)
+    assert is_equivalent_up_to_constant(b, a, is_indefinite=True)

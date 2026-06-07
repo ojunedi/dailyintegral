@@ -16,15 +16,9 @@ from typing import Optional
 import sympy as sp
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.utils import parse_latex_safely
+from app.utils import expressions_match_numerically, parse_latex_safely
 
 X = sp.Symbol("x")
-
-
-def _finite(z: complex) -> bool:
-    """True if a complex sample is an ordinary finite number."""
-    import math
-    return math.isfinite(z.real) and math.isfinite(z.imag)
 
 
 class NewProblem(BaseModel):
@@ -115,24 +109,10 @@ class NewProblem(BaseModel):
         return self._numeric_derivative_match(derivative)
 
     def _numeric_derivative_match(self, derivative: sp.Expr) -> tuple[bool, str]:
-        """Confirm d/dx(solution) == integrand by evaluating at real sample points."""
-        points = [-0.8, -0.5, -0.2, 0.2, 0.5, 0.8, 1.3, 1.7, 2.1, 2.6]
-        matched = 0
-        for p in points:
-            try:
-                a = complex(derivative.subs(X, p).evalf())
-                b = complex(self.integrand.subs(X, p).evalf())
-            except Exception:  # noqa: BLE001
-                continue
-            # Skip points where either side is non-finite (singularities, domain edges).
-            if not (_finite(a) and _finite(b)):
-                continue
-            if abs(a - b) > 1e-6 * max(1.0, abs(b)):
-                return False, f"d/dx(solution) != integrand at x={p}"
-            matched += 1
-        if matched >= 4:
+        """Confirm d/dx(solution) == integrand via the shared numeric primitive."""
+        if expressions_match_numerically(derivative, self.integrand):
             return True, "OK (numeric)"
-        return False, "could not confirm d/dx(solution) == integrand (too few sample points)"
+        return False, "could not confirm d/dx(solution) == integrand (numeric)"
 
     def _verify_definite(self, parsed: sp.Expr) -> tuple[bool, str]:
         """The solution value must match numeric quadrature of the integrand."""
