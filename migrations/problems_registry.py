@@ -5,6 +5,10 @@ through this scaffolding.
 To add a problem: append a NewProblem(...) entry to PROBLEMS, then run:
     uv run python -m migrations.add_problems
 
+Or, instead of editing this file by hand, author from a JSON file (keys are the
+same fields as NewProblem; integrand/lower/upper are source strings):
+    uv run python -m migrations.author new_problems.json
+
 The runner verifies every entry against SymPy before uploading anything.
 If any entry fails verification, nothing is uploaded.
 
