@@ -16,9 +16,15 @@ from typing import Optional
 import sympy as sp
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.utils import is_equivalent_up_to_constant, parse_latex_safely
+from app.utils import parse_latex_safely
 
 X = sp.Symbol("x")
+
+
+def _finite(z: complex) -> bool:
+    """True if a complex sample is an ordinary finite number."""
+    import math
+    return math.isfinite(z.real) and math.isfinite(z.imag)
 
 
 class NewProblem(BaseModel):
@@ -35,6 +41,12 @@ class NewProblem(BaseModel):
     # Required only for definite integrals.
     lower: Optional[sp.Expr] = None
     upper: Optional[sp.Expr] = None
+
+    # Escape hatch for definite integrals whose value is a textbook result but
+    # whose numeric quadrature does not converge (e.g. Dirichlet's sin(x)/x over
+    # [0, oo)). When True, verify() falls back to symbolic sympy.integrate
+    # comparison. Use sparingly and only for hand-checked, famous results.
+    trusted: bool = False
 
     @field_validator("difficulty")
     @classmethod
@@ -60,34 +72,102 @@ class NewProblem(BaseModel):
 
     def verify(self) -> tuple[bool, str]:
         """
-        Confirm the stored solution (a) parses with the app's LaTeX grader and
-        (b) is equivalent to SymPy's own integration of the integrand.
+        Confirm the stored solution is correct by checking it against the
+        *integrand* directly — independent of sympy.integrate(), which can
+        silently return a wrong closed form (e.g. it returns 0 for
+        \\int 1/(x^8+1) dx).
+
+          - indefinite: d/dx(solution) must equal the integrand. Differentiation
+            is algorithmic, so this is a trustworthy independent gate.
+          - definite: the solution's value must match mpmath numeric quadrature
+            of the integrand. Quadrature does not route through the symbolic
+            integrate() that has the bug.
 
         A PASS here means the app will accept the stored solution as correct at
-        runtime — the same comparison logic is used in both places.
+        runtime.
         """
         is_indef = self.integral_type == "indefinite"
         parsed = parse_latex_safely(self.solution, is_indefinite=is_indef)
         if parsed is None:
             return False, "solution LaTeX did not parse"
 
-        # parse_latex renders e/pi as plain symbols; normalize so the comparison
-        # against sympy.integrate() is mathematically meaningful.
+        # parse_latex renders e/pi as plain symbols; normalize before comparison.
         parsed = parsed.subs({sp.Symbol("e"): sp.E, sp.Symbol("pi"): sp.pi})
 
-        try:
-            if is_indef:
-                truth = sp.integrate(self.integrand, X)
-            else:
-                truth = sp.integrate(self.integrand, (X, self.lower, self.upper))
-        except Exception as exc:
-            return False, f"sympy.integrate failed: {exc}"
+        if is_indef:
+            return self._verify_indefinite(parsed)
+        return self._verify_definite(parsed)
 
+    def _verify_indefinite(self, parsed: sp.Expr) -> tuple[bool, str]:
+        """d/dx(solution) must equal the integrand (the +C drops out)."""
+        derivative = sp.diff(parsed, X)
+        try:
+            result = derivative.equals(self.integrand)
+        except Exception:  # noqa: BLE001
+            result = None
+        if result is True:
+            return True, "OK"
+        if result is False:
+            return False, "d/dx(solution) != integrand"
+        # .equals() returns None when it can't decide (common for tan(x/2) and
+        # floor-carrying antiderivatives). Fall back to numeric sampling — never
+        # treat the symbolic "inconclusive" as a pass.
+        return self._numeric_derivative_match(derivative)
+
+    def _numeric_derivative_match(self, derivative: sp.Expr) -> tuple[bool, str]:
+        """Confirm d/dx(solution) == integrand by evaluating at real sample points."""
+        points = [-0.8, -0.5, -0.2, 0.2, 0.5, 0.8, 1.3, 1.7, 2.1, 2.6]
+        matched = 0
+        for p in points:
+            try:
+                a = complex(derivative.subs(X, p).evalf())
+                b = complex(self.integrand.subs(X, p).evalf())
+            except Exception:  # noqa: BLE001
+                continue
+            # Skip points where either side is non-finite (singularities, domain edges).
+            if not (_finite(a) and _finite(b)):
+                continue
+            if abs(a - b) > 1e-6 * max(1.0, abs(b)):
+                return False, f"d/dx(solution) != integrand at x={p}"
+            matched += 1
+        if matched >= 4:
+            return True, "OK (numeric)"
+        return False, "could not confirm d/dx(solution) == integrand (too few sample points)"
+
+    def _verify_definite(self, parsed: sp.Expr) -> tuple[bool, str]:
+        """The solution value must match numeric quadrature of the integrand."""
+        if parsed.free_symbols:
+            return False, f"definite answer has free symbols: {parsed.free_symbols}"
+
+        if self.trusted:
+            return self._verify_definite_symbolic(parsed)
+
+        try:
+            numeric = sp.Integral(self.integrand, (X, self.lower, self.upper)).evalf()
+            target = complex(parsed.evalf())
+        except Exception as exc:  # noqa: BLE001
+            return False, f"numeric check raised: {exc} (set trusted=True if textbook)"
+
+        if not getattr(numeric, "is_number", False) or numeric.has(sp.Integral, sp.nan, sp.zoo):
+            return False, "numeric quadrature did not converge (set trusted=True if textbook)"
+
+        diff = abs(complex(numeric) - target)
+        scale = max(1.0, abs(target))
+        if diff / scale < 1e-6:
+            return True, "OK"
+        return False, f"value {target} != numeric integral {complex(numeric)}"
+
+    def _verify_definite_symbolic(self, parsed: sp.Expr) -> tuple[bool, str]:
+        """Fallback for trusted textbook definite integrals: symbolic compare."""
+        try:
+            truth = sp.integrate(self.integrand, (X, self.lower, self.upper))
+        except Exception as exc:  # noqa: BLE001
+            return False, f"sympy.integrate failed: {exc}"
         if truth is None or truth.has(sp.Integral):
             return False, "sympy could not evaluate the integral"
-
-        ok = is_equivalent_up_to_constant(parsed, truth, is_indefinite=is_indef)
-        return ok, ("OK" if ok else f"not equivalent (sympy truth: {truth})")
+        if sp.simplify(parsed - truth) == 0:
+            return True, "OK (trusted/symbolic)"
+        return False, f"not equal (sympy truth: {truth})"
 
     def to_row(self, *, id: int, date: str) -> dict:
         """Build a Supabase row dict. id and date are assigned by the runner."""

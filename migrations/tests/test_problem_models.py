@@ -209,3 +209,66 @@ class TestVerify:
         ok, msg = _indefinite(solution=r"x^2 + C").verify()
         assert not ok
         assert msg  # non-empty message
+
+    def test_rejects_sympy_wrong_zero_antiderivative(self):
+        # Regression: sympy.integrate(1/(x^8+1), x) erroneously returns 0.
+        # The gate must reject solution "0" by checking d/dx against the integrand,
+        # NOT by trusting sympy's (wrong) integral.
+        p = _indefinite(solution=r"0", integrand=1 / (x**8 + 1))
+        ok, _ = p.verify()
+        assert not ok
+
+    def test_hand_authored_solution_for_sympy_stumper_verifies(self):
+        # 1/(1+sin^2 x): the derivative check validates a hand-written answer
+        # independently of whether sympy can integrate it.
+        p = _indefinite(
+            solution=r"\frac{\arctan(\sqrt{2}\tan(x))}{\sqrt{2}} + C",
+            integrand=1 / (1 + sp.sin(x) ** 2),
+        )
+        ok, msg = p.verify()
+        assert ok, msg
+
+    def test_numeric_fallback_accepts_tan_half_angle_form(self):
+        # d/dx(x*tan(x/2)) == (x+sin x)/(1+cos x); sympy .equals() returns None
+        # here, so the numeric sampling fallback must confirm it.
+        p = _indefinite(
+            solution=r"x \tan(\frac{x}{2})",
+            integrand=(x + sp.sin(x)) / (1 + sp.cos(x)),
+        )
+        ok, msg = p.verify()
+        assert ok, msg
+
+    def test_trusted_definite_uses_symbolic_fallback(self):
+        # Dirichlet: numeric quadrature does not converge, so trusted=True routes
+        # to the symbolic comparison.
+        p = NewProblem(
+            problem=r"\int_0^\infty \frac{\sin(x)}{x} dx",
+            solution=r"\frac{\pi}{2}",
+            integrand=sp.sin(x) / x,
+            integral_type="definite",
+            lower=sp.Integer(0),
+            upper=sp.oo,
+            trusted=True,
+            topic="Definite",
+            difficulty="hard",
+            progressive_hints=["Dirichlet integral"],
+        )
+        ok, msg = p.verify()
+        assert ok, msg
+
+    def test_untrusted_nonconverging_definite_fails(self):
+        # Without trusted=True, the same Dirichlet integral can't be numerically
+        # verified and must NOT pass.
+        p = NewProblem(
+            problem=r"\int_0^\infty \frac{\sin(x)}{x} dx",
+            solution=r"\frac{\pi}{2}",
+            integrand=sp.sin(x) / x,
+            integral_type="definite",
+            lower=sp.Integer(0),
+            upper=sp.oo,
+            topic="Definite",
+            difficulty="hard",
+            progressive_hints=["Dirichlet integral"],
+        )
+        ok, _ = p.verify()
+        assert not ok
