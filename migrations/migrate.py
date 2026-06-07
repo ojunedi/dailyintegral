@@ -8,9 +8,9 @@ Usage:
     python -m migrations.migrate                    # uses default integrals.db
     python -m migrations.migrate path/to/db.sqlite
 """
+import os
 import sqlite3
 import sys
-import os
 
 MIGRATIONS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,7 +56,7 @@ def run_migrations(db_path):
         conn.executescript(sql)
         conn.execute("INSERT INTO schema_migrations (filename) VALUES (?)", (filename,))
         conn.commit()
-        print(f"  Done.")
+        print("  Done.")
 
     print(f"Applied {len(pending)} migration(s).")
     conn.close()

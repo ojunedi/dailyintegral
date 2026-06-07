@@ -2,7 +2,6 @@
 from migrations.add_problems import _next_date, verify_all
 from migrations.problems_registry import PROBLEMS
 
-
 # ── _next_date ────────────────────────────────────────────────────────────────
 
 class TestNextDate:
