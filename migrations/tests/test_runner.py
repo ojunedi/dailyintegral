@@ -1,6 +1,15 @@
 """Tests for migrations/add_problems.py helpers and the problems registry."""
-from migrations.add_problems import _next_date, verify_all
+import sympy as sp
+
+from migrations.add_problems import (
+    _independent_antiderivative,
+    _independent_value,
+    _next_date,
+    verify_all,
+)
 from migrations.problems_registry import PROBLEMS
+
+_X = sp.Symbol("x")
 
 # ── _next_date ────────────────────────────────────────────────────────────────
 
@@ -92,3 +101,25 @@ class TestVerifyAll:
         """Every problem in the registry must pass SymPy verification."""
         result = verify_all()
         assert result, "verify_all() failed — check captured output for details"
+
+
+# ── grader-gate helpers ─────────────────────────────────────────────────────────
+
+class TestIndependentAntiderivative:
+    def test_returns_valid_antiderivative(self):
+        g = _independent_antiderivative(_X**2, _X)
+        assert g is not None
+        assert sp.simplify(sp.diff(g, _X) - _X**2) == 0
+
+    def test_returns_none_when_sympy_is_wrong(self):
+        # sympy.integrate(1/(x^8+1)) erroneously returns 0; the .equals guard must
+        # reject it so we never feed a wrong "independent form" to the grader.
+        assert _independent_antiderivative(1 / (_X**8 + 1), _X) is None
+
+
+class TestIndependentValue:
+    def test_convergent_definite_returns_value(self):
+        # ∫_0^1 x dx = 1/2
+        v = _independent_value(_X, sp.Integer(0), sp.Integer(1), _X)
+        assert v is not None
+        assert abs(complex(v).real - 0.5) < 1e-6

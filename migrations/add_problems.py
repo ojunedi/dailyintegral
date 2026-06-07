@@ -41,6 +41,82 @@ def verify_all() -> bool:
     return not failures
 
 
+def _independent_antiderivative(integrand, x):
+    """A SymPy antiderivative confirmed correct independently (d/dx == integrand),
+    usable as a *different form* to exercise the grader without being tautological.
+    Returns None when SymPy can't produce a trustworthy one."""
+    import sympy as sp
+
+    try:
+        g = sp.integrate(integrand, x)
+        if g is None or g.has(sp.Integral):
+            return None
+        return g if sp.diff(g, x).equals(integrand) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _independent_value(integrand, lower, upper, x):
+    """Numeric quadrature value of a definite integral, or None if it doesn't converge."""
+    import sympy as sp
+
+    try:
+        v = sp.Integral(integrand, (x, lower, upper)).evalf()
+    except Exception:  # noqa: BLE001
+        return None
+    if not getattr(v, "is_number", False) or v.has(sp.Integral, sp.nan, sp.zoo):
+        return None
+    return v
+
+
+def grade_all() -> bool:
+    """Second gate: confirm the app's answer-checker (is_equivalent_up_to_constant)
+    accepts each stored solution — opportunistically against an independently
+    derived form so the check isn't tautological. Catches any divergence between
+    verify() (d/dx vs integrand) and the production grader."""
+    import sympy as sp
+
+    from app.utils import is_equivalent_up_to_constant, parse_latex_safely
+    from migrations.problems_registry import PROBLEMS
+
+    x = sp.Symbol("x")
+    norm = {sp.Symbol("e"): sp.E, sp.Symbol("pi"): sp.pi}
+    failures = []
+
+    for p in PROBLEMS:
+        is_indef = p.integral_type == "indefinite"
+        parsed = parse_latex_safely(p.solution, is_indefinite=is_indef)
+        if parsed is None:
+            ok, msg = False, "solution did not parse"
+        elif is_indef:
+            ref = _independent_antiderivative(p.integrand, x)
+            form = ref if ref is not None else parsed.subs(norm)
+            ok = is_equivalent_up_to_constant(form, parsed.subs(norm), is_indefinite=True)
+            msg = ("OK (independent form)" if ref is not None else "OK (smoke)") if ok \
+                else "grader rejected a correct form"
+        else:
+            # `trusted` marks definites whose numeric quadrature is unreliable
+            # (Dirichlet etc. — mpmath can even return a bogus finite value), so
+            # don't use a numeric reference for them; fall back to a smoke test.
+            ref = None if p.trusted else _independent_value(p.integrand, p.lower, p.upper, x)
+            target = parsed.subs(norm)
+            if ref is not None:
+                ok = is_equivalent_up_to_constant(ref, target, is_indefinite=False)
+                msg = "OK (numeric ref)" if ok else "grader rejected numeric value"
+            else:
+                ok = is_equivalent_up_to_constant(target, target, is_indefinite=False)
+                msg = "OK (smoke/trusted)" if ok else "grader rejected own value"
+
+        print(f"[{'PASS' if ok else 'FAIL'}] {p.integral_type:10s} {p.problem[:45]:45s} {msg}")
+        if not ok:
+            failures.append(p.problem)
+
+    print(f"\n{len(PROBLEMS) - len(failures)}/{len(PROBLEMS)} accepted by the app grader")
+    if failures:
+        print("FAILED:", failures)
+    return not failures
+
+
 def _next_date(taken: set[str], after: str) -> str:
     """First calendar date strictly after `after` not already in `taken`."""
     cur = date.fromisoformat(after)
@@ -57,8 +133,13 @@ def main() -> None:
     if not verify_all():
         sys.exit("\nVerification failed — nothing uploaded. Fix the registry first.")
 
+    print("\n── App-grader gate (is_equivalent_up_to_constant) ──")
+    if not grade_all():
+        sys.exit("\nApp-grader gate failed — nothing uploaded. The production grader "
+                 "rejects a correct solution; harden is_equivalent_up_to_constant.")
+
     if check_only:
-        print("\n--check mode: verification passed, nothing uploaded.")
+        print("\n--check mode: verification + grader gate passed, nothing uploaded.")
         return
 
     load_dotenv(os.path.join(BASE_DIR, ".env.local"))
