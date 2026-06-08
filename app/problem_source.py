@@ -129,12 +129,28 @@ class DatabaseProblemSource(BaseProblemSource):
 
         return problem
 
-    def get_random_problem(self) -> Optional[Dict[str, Any]]:
-
+    def get_random_problem(
+        self,
+        difficulty: Optional[str] = None,
+        topic: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Return a random problem, optionally filtered by difficulty and/or topic."""
         try:
             with sqlite3.connect(self.db_name) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM integrals ORDER BY RANDOM() LIMIT 1")
+                query = "SELECT * FROM integrals"
+                clauses = []
+                params = []
+                if difficulty:
+                    clauses.append("difficulty = ?")
+                    params.append(difficulty)
+                if topic:
+                    clauses.append("topic = ?")
+                    params.append(topic)
+                if clauses:
+                    query += " WHERE " + " AND ".join(clauses)
+                query += " ORDER BY RANDOM() LIMIT 1"
+                cursor.execute(query, params)
                 problem = cursor.fetchone()
 
                 if problem:
@@ -286,15 +302,33 @@ class SupabaseProblemSource(BaseProblemSource):
             print(f"Supabase error: {e}")
         return None
 
-    def get_random_problem(self) -> Optional[Dict[str, Any]]:
-        """Random problem (debug mode). Postgrest can't ORDER BY random(), so we
-        pick a random offset over the row count instead."""
+    def get_random_problem(
+        self,
+        difficulty: Optional[str] = None,
+        topic: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Random problem, optionally filtered by difficulty and/or topic.
+
+        Postgrest can't ORDER BY random(). With no filters we pick a random
+        offset over the row count (cheap). When filtering we fetch the matching
+        rows and pick one in Python — the table is small (~hundreds of rows), so
+        this stays simple without an extra count query per filter combination."""
         try:
             client = self._client()
-            total = self._count(client)
-            if total == 0:
-                return None
-            return self._fetch_at_offset(client, random.randint(0, total - 1))
+            if not difficulty and not topic:
+                total = self._count(client)
+                if total == 0:
+                    return None
+                return self._fetch_at_offset(client, random.randint(0, total - 1))
+
+            query = client.table('integrals').select('*')
+            if difficulty:
+                query = query.eq('difficulty', difficulty)
+            if topic:
+                query = query.eq('topic', topic)
+            resp = query.execute()
+            if resp.data:
+                return self.format_problem(random.choice(resp.data))
         except Exception as e:
             print(f"Supabase error: {e}")
         return None

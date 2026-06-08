@@ -146,6 +146,81 @@ class TestProblemEndpoint:
         assert resp.get_json()['success'] is False
 
 
+# ── Practice problem endpoint ────────────────────────────────────────
+
+# A handful of problems spanning difficulties/topics, with distinct dates
+# (the `date` column is UNIQUE). Used to exercise the practice filters.
+PRACTICE_PROBLEMS = [
+    ('2001-01-01', r'\int x dx', r'\frac{x^2}{2}', 'easy', 'polynomials'),
+    ('2001-01-02', r'\int x^2 dx', r'\frac{x^3}{3}', 'easy', 'polynomials'),
+    ('2001-01-03', r'\int e^x dx', r'e^x', 'medium', 'exponentials'),
+    ('2001-01-04', r'\int \sec^2 x dx', r'\tan x', 'hard', 'trigonometry'),
+]
+
+
+def _seed_practice_problems():
+    """Add several problems with varied difficulty/topic for filter tests."""
+    conn = sqlite3.connect(TEST_DB)
+    for d, prob, sol, diff, topic in PRACTICE_PROBLEMS:
+        conn.execute(
+            "INSERT INTO integrals (date, problem, solution, difficulty, topic, "
+            "progressive_hints, integral_type) VALUES (?, ?, ?, ?, ?, '[]', 'indefinite')",
+            (d, prob, sol, diff, topic),
+        )
+    conn.commit()
+    conn.close()
+
+
+class TestPracticeProblemEndpoint:
+
+    def test_practice_returns_200(self, client):
+        resp = client.get('/api/practice/problem')
+        assert resp.status_code == 200
+
+    def test_practice_has_valid_problem(self, client):
+        data = client.get('/api/practice/problem').get_json()
+        assert data['success'] is True
+        problem = data['problem']
+        assert problem['id'] >= 1
+        assert 'problem' in problem
+        assert 'solution' in problem
+        assert problem['difficulty'] in ('easy', 'medium', 'hard')
+
+    def test_practice_respects_difficulty_filter(self, client):
+        _seed_practice_problems()
+        for _ in range(10):
+            data = client.get('/api/practice/problem?difficulty=hard').get_json()
+            assert data['success'] is True
+            assert data['problem']['difficulty'] == 'hard'
+
+    def test_practice_respects_topic_filter(self, client):
+        _seed_practice_problems()
+        for _ in range(10):
+            data = client.get('/api/practice/problem?topic=exponentials').get_json()
+            assert data['success'] is True
+            assert data['problem']['topic'] == 'exponentials'
+
+    def test_practice_invalid_difficulty_returns_400(self, client):
+        resp = client.get('/api/practice/problem?difficulty=impossible')
+        assert resp.status_code == 400
+        assert resp.get_json()['success'] is False
+
+    def test_practice_no_match_returns_404(self, client):
+        # The base seed has only an 'easy' problem; nothing matches a bogus topic.
+        resp = client.get('/api/practice/problem?topic=nonexistent_topic_xyz')
+        assert resp.status_code == 404
+        assert resp.get_json()['success'] is False
+
+    def test_practice_empty_db_returns_404(self, client):
+        conn = sqlite3.connect(TEST_DB)
+        conn.execute("DELETE FROM integrals")
+        conn.commit()
+        conn.close()
+        resp = client.get('/api/practice/problem')
+        assert resp.status_code == 404
+        assert resp.get_json()['success'] is False
+
+
 # ── Submit endpoint ──────────────────────────────────────────────────
 
 class TestSubmitEndpoint:

@@ -11,6 +11,7 @@ import { useAuth } from './hooks/useAuth'
 import { getAllLocalResults, aggregateStats, computeStats, clearLocalResults } from './services/statsStorage'
 import { Analytics } from '@vercel/analytics/react'
 import StatsPanel from './components/StatsPanel'
+import PracticeMode from './components/PracticeMode'
 
 function App() {
   const { user, session, loading: authLoading, signIn, signUp, signInWithGoogle, signOut } = useAuth()
@@ -27,6 +28,8 @@ function App() {
   const [bestStreak, setBestStreak] = useState(0)
   const [statsOpen, setStatsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
+  // Practice mode is an independent UI mode; it never records daily progress.
+  const [practiceMode, setPracticeMode] = useState(false)
   const hasSynced = useRef(false)
 
   // Use local date (YYYY-MM-DD) so the key doesn't flip at 8pm for UTC-4 users
@@ -286,6 +289,12 @@ function App() {
                   <span>day streak</span>
                 </div>
               )}
+              <button
+                className="stats-toggle-button"
+                onClick={() => setPracticeMode((p) => !p)}
+              >
+                {practiceMode ? 'Daily' : 'Practice'}
+              </button>
               <button className="stats-toggle-button" onClick={() => setStatsOpen(true)}>
                 Stats
               </button>
@@ -297,32 +306,38 @@ function App() {
             </div>
           </header>
 
-          {problem && <ProblemDisplay problem={problem} />}
-
-          {!submitted ? (
-            <>
-              {result && !result.success && <ResultMessage result={result} />}
-              <ProgressiveHint hints={problem?.progressive_hints} />
-              <AnswerInput
-                value={userAnswer}
-                onChange={setUserAnswer}
-                onSubmit={handleSubmit}
-                disabled={!userAnswer.trim()}
-              />
-            </>
+          {practiceMode ? (
+            <PracticeMode />
           ) : (
-            <div>
-              <ResultMessage result={result} />
-              {debugMode ? (
-                <button onClick={handleReset} className="button button-secondary">
-                  Next Challenge →
-                </button>
+            <>
+              {problem && <ProblemDisplay problem={problem} />}
+
+              {!submitted ? (
+                <>
+                  {result && !result.success && <ResultMessage result={result} />}
+                  <ProgressiveHint hints={problem?.progressive_hints} />
+                  <AnswerInput
+                    value={userAnswer}
+                    onChange={setUserAnswer}
+                    onSubmit={handleSubmit}
+                    disabled={!userAnswer.trim()}
+                  />
+                </>
               ) : (
-                <div className="daily-lock-message">
-                  <p>Come back tomorrow for a new challenge!</p>
+                <div>
+                  <ResultMessage result={result} />
+                  {debugMode ? (
+                    <button onClick={handleReset} className="button button-secondary">
+                      Next Challenge →
+                    </button>
+                  ) : (
+                    <div className="daily-lock-message">
+                      <p>Come back tomorrow for a new challenge!</p>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
         <StatsPanel isOpen={statsOpen} onClose={() => setStatsOpen(false)} session={session} />
