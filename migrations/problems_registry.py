@@ -1004,7 +1004,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{1}{x (x + 1)\, dx",
+        problem=r"\int \frac{1}{x \cdot (x + 1)}\, dx",
         solution=r"\ln(x) - \ln(x + 1)",
         integrand=1/(x*(x+1)),
         topic=r"Partial Fractions",
@@ -1015,7 +1015,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{1}(x - 1) (x + 2)\, dx",
+        problem=r"\int \frac{1}{(x - 1) (x + 2)}\, dx",
         solution=r"\frac{\ln(x - 1)}{3} - \frac{\ln(x + 2)}{3}",
         integrand=1/((x-1)*(x+2)),
         topic=r"Partial Fractions",
@@ -1047,7 +1047,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{x}(x + 1) (x + 2)\, dx",
+        problem=r"\int \frac{x}{(x + 1) (x + 2)}\, dx",
         solution=r"- \ln(x + 1) + 2 \ln(x + 2)",
         integrand=x/((x+1)*(x+2)),
         topic=r"Partial Fractions",
@@ -1739,7 +1739,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{1}(x^{2} + 1)^{3}}\, dx",
+        problem=r"\int \frac{1}{(x^{2} + 1)^{3}}\, dx",
         solution=r"\frac{3 x^{3} + 5 x}{8 x^{4} + 16 x^{2} + 8} + \frac{3 \arctan(x)}{8}",
         integrand=1/(x**2+1)**3,
         topic=r"Advanced Rational Functions",
@@ -1750,7 +1750,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{1}(x^{2} + 1)^{2}}\, dx",
+        problem=r"\int \frac{1}{(x^{2} + 1)^{2}}\, dx",
         solution=r"\frac{x}{2 x^{2} + 2} + \frac{\arctan(x)}{2}",
         integrand=1/(x**2+1)**2,
         topic=r"Advanced Rational Functions",
@@ -1761,7 +1761,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{x^{2}}(x^{2} + 1)^{2}}\, dx",
+        problem=r"\int \frac{x^{2}}{(x^{2} + 1)^{2}}\, dx",
         solution=r"- \frac{x}{2 x^{2} + 2} + \frac{\arctan(x)}{2}",
         integrand=x**2/(x**2+1)**2,
         topic=r"Advanced Rational Functions",
@@ -1772,7 +1772,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{x^{3}}(x^{2} + 1)^{2}}\, dx",
+        problem=r"\int \frac{x^{3}}{(x^{2} + 1)^{2}}\, dx",
         solution=r"\frac{\ln(x^{2} + 1)}{2} + \frac{1}{2 x^{2} + 2}",
         integrand=x**3/(x**2+1)**2,
         topic=r"Advanced Rational Functions",
@@ -1783,7 +1783,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{1}(x^{4} + 1)^{3}}\, dx",
+        problem=r"\int \frac{1}{(x^{4} + 1)^{3}}\, dx",
         solution=r"\frac{7 x^{5} + 11 x}{32 x^{8} + 64 x^{4} + 32} - \frac{21 \sqrt{2} \ln(x^{2} - \sqrt{2} x + 1)}{256} + \frac{21 \sqrt{2} \ln(x^{2} + \sqrt{2} x + 1)}{256} + \frac{21 \sqrt{2} \arctan(\sqrt{2} x - 1)}{128} + \frac{21 \sqrt{2} \arctan(\sqrt{2} x + 1)}{128}",
         integrand=1/(x**4+1)**3,
         topic=r"Advanced Rational Functions",
@@ -1839,7 +1839,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{x^{2} + x}(x + e^{x} + 1)^{2}}\, dx",
+        problem=r"\int \frac{x^{2} + x}{(x + e^{x} + 1)^{2}}\, dx",
         solution=r"x + \frac{x + 1}{x + e^{x} + 1} - \ln(x + e^{x} + 1)",
         integrand=(x**2+x)/(sp.exp(x)+x+1)**2,
         topic=r"Clever Manipulation",
@@ -2425,7 +2425,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int \frac{1}{\sqrt{x} (x + 1)\, dx",
+        problem=r"\int \frac{1}{\sqrt{x} (x + 1)}\, dx",
         solution=r"2 \arctan(\sqrt{x})",
         integrand=1/(sp.sqrt(x)*(1+x)),
         topic=r"Radicals",
@@ -2693,7 +2693,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int_{-\infty}^{\infty} \frac{x^{4}}(x^{4} - 89 x^{2} + 2025)^{2}}\, dx",
+        problem=r"\int_{-\infty}^{\infty} \frac{x^{4}}{(x^{4} - 89 x^{2} + 2025)^{2}}\, dx",
         solution=r"\frac{\pi}{2}",
         integrand=x**4/(x**4-89*x**2+2025)**2,
         integral_type="definite",
@@ -2707,7 +2707,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int_{0}^{\infty} \frac{1}(x^{2} + 1)^{3}}\, dx",
+        problem=r"\int_{0}^{\infty} \frac{1}{(x^{2} + 1)^{3}}\, dx",
         solution=r"\frac{3 \pi}{16}",
         integrand=1/(x**2+1)**3,
         integral_type="definite",
@@ -2721,7 +2721,7 @@ PROBLEMS: list[NewProblem] = [
         ],
     ),
     NewProblem(
-        problem=r"\int_{0}^{\infty} \frac{x^{2}}(x^{2} + 1)^{3}}\, dx",
+        problem=r"\int_{0}^{\infty} \frac{x^{2}}{(x^{2} + 1)^{3}}\, dx",
         solution=r"\frac{\pi}{16}",
         integrand=x**2/(x**2+1)**3,
         integral_type="definite",

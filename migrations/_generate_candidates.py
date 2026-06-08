@@ -18,7 +18,7 @@ import sys
 
 import sympy as sp
 
-from app.utils import sympy_to_latex
+from app.utils import expressions_match_numerically, parse_latex_safely, sympy_to_latex
 from migrations.problem_models import NewProblem
 from migrations.problems_registry import PROBLEMS as EXISTING
 
@@ -38,13 +38,17 @@ def _fix_inverse(s: str) -> str:
 
 
 def _prettify(s: str) -> str:
-    """Cosmetic cleanup for display: collapse \\left(\\right), \\log -> \\ln,
-    and \\int\\limits -> \\int to match the existing hand-authored entries."""
-    s = s.replace(r"{\left(", "(").replace(r"\right)}", ")")
-    s = s.replace(r"\left(", "(").replace(r"\right)", ")")
+    """Cosmetic cleanup for display: drop \\left/\\right sizing commands, \\log ->
+    \\ln, and \\int\\limits -> \\int to match the existing hand-authored entries.
+
+    Only the sizing commands are removed — the delimiters and any structural braces
+    are left intact. (The old version collapsed ``{\\left(`` -> ``(`` and
+    ``\\right)}`` -> ``)``, which silently ate a \\frac denominator's braces when the
+    denominator was a parenthesized group, producing unrenderable LaTeX.)"""
+    s = s.replace(r"\left", "").replace(r"\right", "")
     s = s.replace(r"\log", r"\ln")
     s = s.replace(r"\int\limits", r"\int")
-    s = s.replace("( ", "(").replace(" )", ")")  # tidy spacing from collapsed \left\right
+    s = s.replace("( ", "(").replace(" )", ")")  # tidy spacing from removed \left\right
     return s
 
 
@@ -88,12 +92,39 @@ def _verify_solution(solution: str, *, integrand, itype, lower, upper, trusted) 
     return ok
 
 
+def _roundtrips(problem_latex: str, integrand) -> bool:
+    """True if the integrand parsed back out of the problem string matches.
+
+    sympy's LaTeX parser misreads an implicit product of a bare symbol and a
+    parenthesized factor — ``\\frac{1}{x (x + 1)}`` comes back as ``(x+1)/x`` — so
+    the prettified form is only kept when it round-trips cleanly."""
+    from migrations.problem_models import integrand_latex_of
+
+    body = integrand_latex_of(problem_latex)
+    if body is None:
+        return False
+    parsed = parse_latex_safely(body, is_indefinite=False)
+    if parsed is None:
+        return False
+    parsed = parsed.subs({sp.Symbol("e"): sp.E, sp.Symbol("pi"): sp.pi})
+    try:
+        if sp.simplify(parsed - integrand) == 0:
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+    return expressions_match_numerically(parsed, integrand)
+
+
 def _problem_latex(integrand, integral_type, lower, upper) -> str:
     if integral_type == "definite":
         expr = sp.Integral(integrand, (x, lower, upper))
     else:
         expr = sp.Integral(integrand, x)
-    return _fix_inverse(_prettify(sp.latex(expr)))
+    pretty = _fix_inverse(_prettify(sp.latex(expr)))
+    if _roundtrips(pretty, integrand):
+        return pretty
+    # Fall back to explicit \cdot multiplication, which the parser reads correctly.
+    return _fix_inverse(_prettify(sp.latex(expr, mul_symbol="dot")))
 
 
 def build(candidates: list[dict]) -> tuple[list[dict], list[dict]]:

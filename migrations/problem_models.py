@@ -11,6 +11,7 @@ Fields intentionally omitted from authoring:
   - latex_problem,
     latex_solution → set to problem/solution at upload time
 """
+import re
 from typing import Optional
 
 import sympy as sp
@@ -19,6 +20,42 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.utils import expressions_match_numerically, parse_latex_safely
 
 X = sp.Symbol("x")
+
+
+def integrand_latex_of(problem: str) -> Optional[str]:
+    r"""Extract the integrand LaTeX from a full ``\int ... \, dx`` problem string.
+
+    Skips the integral sign and any ``_{..}``/``^{..}`` bounds (matching braces so
+    nested bounds like ``_{\frac{\pi}{2}}`` work), then strips the trailing
+    ``\, dx``. Returns None if the string is not a recognizable integral.
+    """
+    s = problem.strip()
+    if not s.startswith(r"\int"):
+        return None
+    i = len(r"\int")
+    while i < len(s) and s[i] in "_^":
+        i += 1
+        if i < len(s) and s[i] == "{":
+            depth = 0
+            while i < len(s):
+                if s[i] == "{":
+                    depth += 1
+                elif s[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        i += 1
+                        break
+                i += 1
+        elif i < len(s) and s[i] == "\\":  # single command-token bound, e.g. ^\infty
+            i += 1
+            while i < len(s) and s[i].isalpha():
+                i += 1
+        elif i < len(s):  # single-char bound, e.g. _0
+            i += 1
+    body = s[i:].strip()
+    body = re.sub(r"\\[,;!\s]*\s*dx\s*$", "", body)
+    body = re.sub(r"\bdx\s*$", "", body).strip()
+    return body or None
 
 
 class NewProblem(BaseModel):
@@ -91,6 +128,31 @@ class NewProblem(BaseModel):
         if is_indef:
             return self._verify_indefinite(parsed)
         return self._verify_definite(parsed)
+
+    def problem_matches_integrand(self) -> tuple[bool, str]:
+        r"""Confirm the displayed problem LaTeX actually renders the declared
+        integrand. This is the gate that was missing: verify() only ever checked
+        the *solution*, so malformed problem display strings (e.g. a \frac whose
+        denominator braces got eaten) shipped to the app and failed to render.
+
+        Parses the integrand back out of the ``\int ... dx`` string and compares
+        it to ``self.integrand``; a parse failure (unbalanced braces) fails here.
+        """
+        body = integrand_latex_of(self.problem)
+        if body is None:
+            return False, r"problem is not a recognizable '\int ... dx'"
+        parsed = parse_latex_safely(body, is_indefinite=False)
+        if parsed is None:
+            return False, "problem integrand LaTeX did not parse (malformed braces?)"
+        parsed = parsed.subs({sp.Symbol("e"): sp.E, sp.Symbol("pi"): sp.pi})
+        try:
+            if sp.simplify(parsed - self.integrand) == 0:
+                return True, "OK"
+        except Exception:  # noqa: BLE001
+            pass
+        if expressions_match_numerically(parsed, self.integrand):
+            return True, "OK (numeric)"
+        return False, f"problem renders {parsed}, declared integrand is {self.integrand}"
 
     def _verify_indefinite(self, parsed: sp.Expr) -> tuple[bool, str]:
         """d/dx(solution) must equal the integrand (the +C drops out)."""

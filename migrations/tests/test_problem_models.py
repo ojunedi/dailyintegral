@@ -272,3 +272,46 @@ class TestVerify:
         )
         ok, _ = p.verify()
         assert not ok
+
+
+class TestProblemMatchesIntegrand:
+    """The gate that catches malformed problem display LaTeX (the bug where a
+    \frac denominator's braces were eaten and the statement failed to render)."""
+
+    def test_correct_problem_passes(self):
+        ok, msg = _indefinite().problem_matches_integrand()
+        assert ok, msg
+
+    def test_correct_definite_problem_passes(self):
+        ok, msg = _definite().problem_matches_integrand()
+        assert ok, msg
+
+    def test_malformed_frac_denominator_fails(self):
+        # Missing the denominator's opening brace + a stray trailing brace —
+        # exactly the corruption the old generator produced. Unrenderable.
+        p = _indefinite(
+            problem=r"\int \frac{x^{3}}(x^{2} + 1)^{2}}\, dx",
+            integrand=x**3 / (x**2 + 1) ** 2,
+            solution=r"\frac{\ln(x^{2} + 1)}{2} + \frac{1}{2 x^{2} + 2} + C",
+        )
+        ok, _ = p.problem_matches_integrand()
+        assert not ok
+
+    def test_problem_not_matching_integrand_fails(self):
+        # Renders fine, but the displayed integrand is not the declared one.
+        p = _indefinite(problem=r"\int x^3 dx", integrand=x**2)
+        ok, _ = p.problem_matches_integrand()
+        assert not ok
+
+    def test_nested_brace_bounds_parse(self):
+        # Bounds with nested braces (\frac in the limit) must not confuse the
+        # integrand extractor.
+        p = _definite(
+            problem=r"\int_{0}^{\frac{\pi}{2}} \cos(x)\, dx",
+            integrand=sp.cos(x),
+            solution=r"1",
+            lower=sp.Integer(0),
+            upper=sp.pi / 2,
+        )
+        ok, msg = p.problem_matches_integrand()
+        assert ok, msg

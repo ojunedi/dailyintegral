@@ -30,6 +30,10 @@ def verify_all() -> bool:
     failures = []
     for p in PROBLEMS:
         ok, msg = p.verify()
+        if ok:
+            # Also confirm the displayed problem LaTeX renders the declared
+            # integrand — verify() only checks the solution.
+            ok, msg = p.problem_matches_integrand()
         tag = "PASS" if ok else "FAIL"
         print(f"[{tag}] {p.integral_type:10s} {p.problem[:45]:45s} {msg}")
         if not ok:
