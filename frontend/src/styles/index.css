@@ -26,6 +26,11 @@
   --neon-amber: #ffa500;
   --neon-purple: #bf40ff;
 
+  /* RGB triples for alpha compositing (borders, glows, washes). Retinted in
+     light mode so every rgba(var(--…), a) usage adapts without per-rule edits. */
+  --neon-cyan-rgb: 0, 255, 245;   /* accent borders / glows */
+  --ink-rgb: 255, 255, 255;       /* hairline borders, dividers, subtle fills */
+
   /* Colors - Text */
   --text-primary: #f0f0f0;
   --text-secondary: #a8b2c1;
@@ -59,8 +64,8 @@
   --radius-xl: 28px;
 
   /* Shadows & Glows */
-  --glow-cyan: 0 0 20px rgba(0, 255, 245, 0.4), 0 0 40px rgba(0, 255, 245, 0.2);
-  --glow-cyan-intense: 0 0 30px rgba(0, 255, 245, 0.6), 0 0 60px rgba(0, 255, 245, 0.3), 0 0 100px rgba(0, 255, 245, 0.1);
+  --glow-cyan: 0 0 20px rgba(var(--neon-cyan-rgb), 0.4), 0 0 40px rgba(var(--neon-cyan-rgb), 0.2);
+  --glow-cyan-intense: 0 0 30px rgba(var(--neon-cyan-rgb), 0.6), 0 0 60px rgba(var(--neon-cyan-rgb), 0.3), 0 0 100px rgba(var(--neon-cyan-rgb), 0.1);
   --glow-pink: 0 0 20px rgba(255, 46, 99, 0.4), 0 0 40px rgba(255, 46, 99, 0.2);
   --glow-green: 0 0 20px rgba(57, 255, 20, 0.5), 0 0 40px rgba(57, 255, 20, 0.3);
   --shadow-card: 0 4px 30px rgba(0, 0, 0, 0.4);
@@ -109,15 +114,15 @@ body::before {
     /* Vignette effect - darker edges like worn chalkboard */
     radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%),
     /* Subtle grid lines - graph paper effect */
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(rgba(var(--ink-rgb), 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--ink-rgb), 0.02) 1px, transparent 1px),
     /* Chalk dust spots */
-    radial-gradient(circle 2px at 10% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 100%),
-    radial-gradient(circle 1px at 25% 60%, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
-    radial-gradient(circle 2px at 70% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 100%),
-    radial-gradient(circle 1px at 85% 75%, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
-    radial-gradient(circle 2px at 45% 85%, rgba(255, 255, 255, 0.03) 0%, transparent 100%),
-    radial-gradient(circle 1px at 60% 15%, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
+    radial-gradient(circle 2px at 10% 20%, rgba(var(--ink-rgb), 0.03) 0%, transparent 100%),
+    radial-gradient(circle 1px at 25% 60%, rgba(var(--ink-rgb), 0.02) 0%, transparent 100%),
+    radial-gradient(circle 2px at 70% 30%, rgba(var(--ink-rgb), 0.03) 0%, transparent 100%),
+    radial-gradient(circle 1px at 85% 75%, rgba(var(--ink-rgb), 0.02) 0%, transparent 100%),
+    radial-gradient(circle 2px at 45% 85%, rgba(var(--ink-rgb), 0.03) 0%, transparent 100%),
+    radial-gradient(circle 1px at 60% 15%, rgba(var(--ink-rgb), 0.02) 0%, transparent 100%),
     /* Base slate color with subtle variation */
     linear-gradient(135deg, #1a2332 0%, #1e2a3a 25%, #1a2332 50%, #1c2636 75%, #1a2332 100%);
   background-size:
@@ -149,7 +154,7 @@ body::after {
   justify-content: space-around;
   font-family: 'Times New Roman', serif;
   font-size: 3rem;
-  color: rgba(255, 255, 255, 0.015);
+  color: rgba(var(--ink-rgb), 0.015);
   letter-spacing: 5rem;
   line-height: 8rem;
   word-spacing: 10rem;
@@ -209,7 +214,7 @@ body::after {
   color: var(--chalk-white);
   letter-spacing: -0.02em;
   margin-bottom: var(--space-sm);
-  text-shadow: 0 0 40px rgba(0, 255, 245, 0.3);
+  text-shadow: 0 0 40px rgba(var(--neon-cyan-rgb), 0.3);
 }
 
 .header h1 .accent {
@@ -264,7 +269,7 @@ body::after {
   padding: var(--space-lg) var(--space-xl);
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(0, 255, 245, 0.15);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.15);
 }
 
 .daily-lock-message p {
@@ -314,7 +319,7 @@ body::after {
   margin-bottom: var(--space-xl);
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(0, 255, 245, 0.15);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.15);
   box-shadow: var(--shadow-card);
   animation: cardSlideIn 0.6s ease-out 0.2s both;
 }
@@ -379,7 +384,7 @@ body::after {
   padding: var(--space-xl) var(--space-lg);
   margin: var(--space-lg) 0;
   text-align: center;
-  border: 1px solid rgba(0, 255, 245, 0.1);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.1);
   position: relative;
 }
 
@@ -388,7 +393,7 @@ body::after {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-md);
-  box-shadow: inset 0 0 30px rgba(0, 255, 245, 0.05);
+  box-shadow: inset 0 0 30px rgba(var(--neon-cyan-rgb), 0.05);
   pointer-events: none;
 }
 
@@ -464,7 +469,7 @@ math-field {
   padding: var(--space-lg);
   font-size: 1.4rem;
   background: var(--bg-card);
-  border: 2px solid rgba(0, 255, 245, 0.2);
+  border: 2px solid rgba(var(--neon-cyan-rgb), 0.2);
   border-radius: var(--radius-md);
   color: var(--chalk-white);
   transition: all var(--transition-base);
@@ -474,11 +479,11 @@ math-field {
 math-field:focus {
   outline: none;
   border-color: var(--neon-cyan);
-  box-shadow: var(--glow-cyan), inset 0 0 30px rgba(0, 255, 245, 0.03);
+  box-shadow: var(--glow-cyan), inset 0 0 30px rgba(var(--neon-cyan-rgb), 0.03);
 }
 
 math-field:hover:not(:focus) {
-  border-color: rgba(0, 255, 245, 0.4);
+  border-color: rgba(var(--neon-cyan-rgb), 0.4);
 }
 
 math-field.disabled {
@@ -495,9 +500,9 @@ math-field::part(virtual-keyboard-toggle) {
 math-field {
   --_text-font-family: var(--font-math);
   --selection-color: var(--chalk-white);
-  --selection-background-color: rgba(0, 255, 245, 0.3);
-  --contains-highlight-background-color: rgba(0, 255, 245, 0.08);
-  --highlight-text: rgba(0, 255, 245, 0.1);
+  --selection-background-color: rgba(var(--neon-cyan-rgb), 0.3);
+  --contains-highlight-background-color: rgba(var(--neon-cyan-rgb), 0.08);
+  --highlight-text: rgba(var(--neon-cyan-rgb), 0.1);
   --caret-color: var(--neon-cyan);
   --composition-background-color: var(--bg-elevated);
   --composition-text-color: var(--chalk-white);
@@ -528,7 +533,7 @@ math-field {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--ink-rgb),0.1), transparent);
   transition: left 0.5s ease;
 }
 
@@ -545,7 +550,7 @@ math-field {
 .button-primary {
   background: linear-gradient(135deg, var(--neon-cyan-dim), var(--neon-cyan));
   color: var(--bg-deep);
-  box-shadow: 0 4px 20px rgba(0, 255, 245, 0.3);
+  box-shadow: 0 4px 20px rgba(var(--neon-cyan-rgb), 0.3);
 }
 
 .button-primary:hover:not(:disabled) {
@@ -560,12 +565,12 @@ math-field {
 .button-secondary {
   background: var(--bg-card);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
 }
 
 .button-secondary:hover:not(:disabled) {
   background: var(--bg-elevated);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(var(--ink-rgb), 0.2);
   transform: translateY(-2px);
 }
 
@@ -637,7 +642,7 @@ math-field {
   justify-content: space-between;
   margin-top: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(var(--ink-rgb), 0.05);
 }
 
 .hint-nav-button {
@@ -1012,7 +1017,7 @@ math-field {
   color: var(--neon-cyan);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(0, 255, 245, 0.35);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1023,7 +1028,7 @@ math-field {
 }
 
 .stats-toggle-button:hover {
-  background: rgba(0, 255, 245, 0.08);
+  background: rgba(var(--neon-cyan-rgb), 0.08);
   border-color: var(--neon-cyan);
   box-shadow: var(--glow-cyan);
 }
@@ -1057,10 +1062,10 @@ math-field {
   max-height: 85vh;
   overflow-y: auto;
   background: var(--bg-secondary);
-  border: 1px solid rgba(0, 255, 245, 0.15);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.15);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
-  box-shadow: var(--shadow-elevated), 0 0 60px rgba(0, 255, 245, 0.08);
+  box-shadow: var(--shadow-elevated), 0 0 60px rgba(var(--neon-cyan-rgb), 0.08);
   animation: panelSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -1084,7 +1089,7 @@ math-field {
 }
 
 .stats-panel::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 245, 0.2);
+  background: rgba(var(--neon-cyan-rgb), 0.2);
   border-radius: 2px;
 }
 
@@ -1093,7 +1098,7 @@ math-field {
   top: var(--space-md);
   right: var(--space-md);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
   color: var(--text-muted);
   width: 32px;
   height: 32px;
@@ -1118,7 +1123,7 @@ math-field {
   font-weight: 600;
   color: var(--chalk-white);
   margin-bottom: var(--space-xl);
-  text-shadow: 0 0 20px rgba(0, 255, 245, 0.2);
+  text-shadow: 0 0 20px rgba(var(--neon-cyan-rgb), 0.2);
 }
 
 /* ============================================
@@ -1133,7 +1138,7 @@ math-field {
 
 .stat-tile {
   background: var(--bg-card);
-  border: 1px solid rgba(0, 255, 245, 0.1);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.1);
   border-radius: var(--radius-md);
   padding: var(--space-lg) var(--space-md);
   display: flex;
@@ -1144,7 +1149,7 @@ math-field {
 }
 
 .stat-tile:hover {
-  border-color: rgba(0, 255, 245, 0.25);
+  border-color: rgba(var(--neon-cyan-rgb), 0.25);
 }
 
 .stat-value {
@@ -1152,7 +1157,7 @@ math-field {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--neon-cyan);
-  text-shadow: 0 0 15px rgba(0, 255, 245, 0.3);
+  text-shadow: 0 0 15px rgba(var(--neon-cyan-rgb), 0.3);
   line-height: 1;
 }
 
@@ -1239,7 +1244,7 @@ math-field {
    ============================================ */
 .calendar-container {
   background: var(--bg-card);
-  border: 1px solid rgba(0, 255, 245, 0.1);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.1);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
 }
@@ -1260,7 +1265,7 @@ math-field {
 
 .cal-nav-btn {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
   color: var(--text-secondary);
   width: 28px;
   height: 28px;
@@ -1276,8 +1281,8 @@ math-field {
 
 .cal-nav-btn:hover {
   color: var(--neon-cyan);
-  border-color: rgba(0, 255, 245, 0.3);
-  background: rgba(0, 255, 245, 0.05);
+  border-color: rgba(var(--neon-cyan-rgb), 0.3);
+  background: rgba(var(--neon-cyan-rgb), 0.05);
 }
 
 .cal-grid {
@@ -1358,7 +1363,7 @@ math-field {
 .cal-day-today {
   outline: 2px solid var(--neon-cyan);
   outline-offset: -2px;
-  box-shadow: 0 0 10px rgba(0, 255, 245, 0.2);
+  box-shadow: 0 0 10px rgba(var(--neon-cyan-rgb), 0.2);
 }
 
 .cal-day-today .cal-day-number {
@@ -1404,7 +1409,7 @@ math-field {
   color: var(--neon-cyan);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(0, 255, 245, 0.35);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1416,7 +1421,7 @@ math-field {
 }
 
 .um-signin-pill:hover {
-  background: rgba(0, 255, 245, 0.08);
+  background: rgba(var(--neon-cyan-rgb), 0.08);
   border-color: var(--neon-cyan);
   box-shadow: var(--glow-cyan);
 }
@@ -1427,7 +1432,7 @@ math-field {
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 255, 245, 0.1);
+  background: rgba(var(--neon-cyan-rgb), 0.1);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1437,7 +1442,7 @@ math-field {
 }
 
 .um-avatar:hover {
-  background: rgba(0, 255, 245, 0.18);
+  background: rgba(var(--neon-cyan-rgb), 0.18);
 }
 
 .um-avatar:hover .um-avatar-ring {
@@ -1451,7 +1456,7 @@ math-field {
   color: var(--neon-cyan);
   position: relative;
   z-index: 1;
-  text-shadow: 0 0 12px rgba(0, 255, 245, 0.5);
+  text-shadow: 0 0 12px rgba(var(--neon-cyan-rgb), 0.5);
 }
 
 .um-avatar-ring {
@@ -1461,7 +1466,7 @@ math-field {
   border: 1.5px solid var(--neon-cyan);
   opacity: 0.5;
   transition: opacity var(--transition-fast);
-  box-shadow: 0 0 8px rgba(0, 255, 245, 0.3);
+  box-shadow: 0 0 8px rgba(var(--neon-cyan-rgb), 0.3);
 }
 
 /* Dropdown */
@@ -1471,9 +1476,9 @@ math-field {
   right: 0;
   min-width: 220px;
   background: var(--bg-card);
-  border: 1px solid rgba(0, 255, 245, 0.12);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.12);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-elevated), 0 0 30px rgba(0, 255, 245, 0.06);
+  box-shadow: var(--shadow-elevated), 0 0 30px rgba(var(--neon-cyan-rgb), 0.06);
   padding: var(--space-md);
   z-index: 1000;
   animation: umDropIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1497,8 +1502,8 @@ math-field {
   width: 10px;
   height: 10px;
   background: var(--bg-card);
-  border-left: 1px solid rgba(0, 255, 245, 0.12);
-  border-top: 1px solid rgba(0, 255, 245, 0.12);
+  border-left: 1px solid rgba(var(--neon-cyan-rgb), 0.12);
+  border-top: 1px solid rgba(var(--neon-cyan-rgb), 0.12);
   transform: rotate(45deg);
 }
 
@@ -1528,7 +1533,7 @@ math-field {
 
 .um-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--ink-rgb), 0.06);
   margin: var(--space-sm) 0;
 }
 
@@ -1575,10 +1580,10 @@ math-field {
   width: 100%;
   max-width: 400px;
   background: var(--bg-secondary);
-  border: 1px solid rgba(0, 255, 245, 0.15);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.15);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
-  box-shadow: var(--shadow-elevated), 0 0 60px rgba(0, 255, 245, 0.08);
+  box-shadow: var(--shadow-elevated), 0 0 60px rgba(var(--neon-cyan-rgb), 0.08);
   animation: panelSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -1587,7 +1592,7 @@ math-field {
   top: var(--space-md);
   right: var(--space-md);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
   color: var(--text-muted);
   width: 32px;
   height: 32px;
@@ -1612,7 +1617,7 @@ math-field {
   font-weight: 600;
   color: var(--chalk-white);
   margin-bottom: var(--space-xs);
-  text-shadow: 0 0 20px rgba(0, 255, 245, 0.2);
+  text-shadow: 0 0 20px rgba(var(--neon-cyan-rgb), 0.2);
 }
 
 .auth-subtitle {
@@ -1631,7 +1636,7 @@ math-field {
   width: 100%;
   padding: var(--space-md);
   background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -1643,7 +1648,7 @@ math-field {
 
 .auth-input:focus {
   border-color: var(--neon-cyan);
-  box-shadow: 0 0 10px rgba(0, 255, 245, 0.15);
+  box-shadow: 0 0 10px rgba(var(--neon-cyan-rgb), 0.15);
 }
 
 .auth-input::placeholder {
@@ -1686,12 +1691,12 @@ math-field {
 .auth-btn-google {
   background: var(--bg-card);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(var(--ink-rgb), 0.15);
 }
 
 .auth-btn-google:hover {
   background: var(--bg-elevated);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(var(--ink-rgb), 0.3);
 }
 
 .auth-divider {
@@ -1708,7 +1713,7 @@ math-field {
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--ink-rgb), 0.1);
 }
 
 .auth-error {
@@ -1797,12 +1802,13 @@ math-field {
    they stay legible on light surfaces.
    ============================================ */
 [data-theme="light"] {
-  /* Base surfaces */
+  /* Base surfaces. Cards are pure white; elevated/secondary are a step grayer so
+     insets like the equation box read as distinct panels, not a flat white field. */
   --bg-deep: #e6e9f0;
-  --bg-primary: #f4f6fa;
-  --bg-secondary: #eaeef6;
+  --bg-primary: #eef1f7;
+  --bg-secondary: #e7ebf3;
   --bg-card: #ffffff;
-  --bg-elevated: #ffffff;
+  --bg-elevated: #eef2f8;
 
   /* Accents (darkened for contrast on light) */
   --neon-cyan: #0792a6;
@@ -1812,6 +1818,11 @@ math-field {
   --neon-green: #138a36;
   --neon-amber: #b8730a;
   --neon-purple: #8b2fd6;
+
+  /* Retint the alpha-composited colors: cyan -> teal, white hairlines -> dark
+     ink so borders/dividers are actually visible on a light surface. */
+  --neon-cyan-rgb: 7, 146, 166;
+  --ink-rgb: 31, 41, 64;
 
   /* Text */
   --text-primary: #1a1f2e;
@@ -1857,4 +1868,24 @@ math-field {
 /* Floating chalk doodles: faint dark ink rather than white. */
 [data-theme="light"] body::after {
   color: rgba(31, 41, 64, 0.03);
+}
+
+/* On light, glowing text reads as fuzzy rather than neon — drop the text-shadow
+   on headings and titles so they stay crisp. */
+[data-theme="light"] .header h1,
+[data-theme="light"] .header h1 .accent,
+[data-theme="light"] .problem-label,
+[data-theme="light"] .stats-title,
+[data-theme="light"] .stat-value,
+[data-theme="light"] .result-title {
+  text-shadow: none;
+}
+
+/* Give cards a touch more definition: a slightly stronger accent border so the
+   white surfaces separate cleanly from the light background. */
+[data-theme="light"] .problem-display,
+[data-theme="light"] .math-input-container,
+[data-theme="light"] .stats-panel,
+[data-theme="light"] .calendar-container {
+  border-color: rgba(var(--neon-cyan-rgb), 0.3);
 }
