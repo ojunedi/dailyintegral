@@ -338,16 +338,16 @@ function App() {
                   )}
                 </div>
               )}
-            </>
-          )}
 
-          {problem && (
-            <SolutionReveal
-              key={problem.id}
-              solution={problem.latex_solution || problem.solution}
-              solved={submitted}
-              correct={result?.is_correct}
-            />
+              {problem && (
+                <SolutionReveal
+                  key={problem.id}
+                  solution={problem.latex_solution || problem.solution}
+                  solved={submitted}
+                  correct={result?.is_correct}
+                />
+              )}
+            </>
           )}
         </div>
         <StatsPanel isOpen={statsOpen} onClose={() => setStatsOpen(false)} session={session} />
