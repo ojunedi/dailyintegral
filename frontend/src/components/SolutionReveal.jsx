@@ -26,7 +26,7 @@ function SolutionReveal({ solution, solved, correct }) {
     return (
       <div className="solution-reveal open">
         <div className="solution-header">
-          <span className="icon">✅</span>
+          <span className="icon">{solved && correct ? '✅' : '📖'}</span>
           <span>Worked Solution</span>
         </div>
         <div className="solution-content">
