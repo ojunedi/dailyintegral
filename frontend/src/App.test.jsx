@@ -52,6 +52,7 @@ vi.mock('better-react-mathjax', () => ({ MathJaxContext: ({ children }) => child
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }))
 vi.mock('./components/ProblemDisplay', () => ({ default: () => <div data-testid="problem" /> }))
 vi.mock('./components/ProgressiveHint', () => ({ default: () => null }))
+vi.mock('./components/SolutionReveal', () => ({ default: () => null }))
 vi.mock('./components/AuthModal', () => ({ default: () => null }))
 vi.mock('./components/UserMenu', () => ({ default: () => null }))
 vi.mock('./components/StatsPanel', () => ({ default: () => null }))

@@ -4,6 +4,7 @@ import ProblemDisplay from './components/ProblemDisplay'
 import AnswerInput from './components/AnswerInput'
 import ResultMessage from './components/ResultMessage'
 import ProgressiveHint from './components/ProgressiveHint'
+import SolutionReveal from './components/SolutionReveal'
 import AuthModal from './components/AuthModal'
 import UserMenu from './components/UserMenu'
 import { apiService } from './services/api'
@@ -323,6 +324,15 @@ function App() {
                 </div>
               )}
             </div>
+          )}
+
+          {problem && (
+            <SolutionReveal
+              key={problem.id}
+              solution={problem.latex_solution || problem.solution}
+              solved={submitted}
+              correct={result?.is_correct}
+            />
           )}
         </div>
         <StatsPanel isOpen={statsOpen} onClose={() => setStatsOpen(false)} session={session} />
