@@ -4,6 +4,7 @@ import ProblemDisplay from './components/ProblemDisplay'
 import AnswerInput from './components/AnswerInput'
 import ResultMessage from './components/ResultMessage'
 import ProgressiveHint from './components/ProgressiveHint'
+import ShareCard from './components/ShareCard'
 import SolutionReveal from './components/SolutionReveal'
 import AuthModal from './components/AuthModal'
 import UserMenu from './components/UserMenu'
@@ -27,6 +28,7 @@ function App() {
   // initialized from shared localStorage (which would leak across accounts).
   const [streak, setStreak] = useState(0)
   const [bestStreak, setBestStreak] = useState(0)
+  const [hintsUsed, setHintsUsed] = useState(0)
   const [statsOpen, setStatsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   // Practice mode is an independent UI mode; it never records daily progress.
@@ -111,6 +113,7 @@ function App() {
     setUserAnswer('')
     setStreak(0)
     setBestStreak(0)
+    setHintsUsed(0)
 
     const todayKey = getTodayKey()
 
@@ -220,6 +223,7 @@ function App() {
     setUserAnswer('')
     setSubmitted(false)
     setResult(null)
+    setHintsUsed(0)
     loadProblem()
   }
 
@@ -316,7 +320,7 @@ function App() {
               {!submitted ? (
                 <>
                   {result && !result.success && <ResultMessage result={result} />}
-                  <ProgressiveHint hints={problem?.progressive_hints} />
+                  <ProgressiveHint hints={problem?.progressive_hints} onReveal={(n) => setHintsUsed((h) => Math.max(h, n))} />
                   <AnswerInput
                     value={userAnswer}
                     onChange={setUserAnswer}
@@ -327,6 +331,13 @@ function App() {
               ) : (
                 <div>
                   <ResultMessage result={result} />
+                  <ShareCard
+                    id={problem?.id}
+                    correct={result?.is_correct}
+                    streak={streak}
+                    difficulty={problem?.difficulty}
+                    hintsUsed={hintsUsed}
+                  />
                   {debugMode ? (
                     <button onClick={handleReset} className="button button-secondary">
                       Next Challenge →

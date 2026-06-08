@@ -1755,6 +1755,32 @@ math-field {
 }
 
 /* ============================================
+   SHARE BUTTON
+   ============================================ */
+.share-button {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.share-button:hover {
+  background: rgba(var(--neon-cyan-rgb), 0.08);
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+/* ============================================
    THEME TOGGLE
    ============================================ */
 .theme-toggle {

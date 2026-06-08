@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import HintDisplay from './HintDisplay'
 
-function ProgressiveHint({ hints }) {
+function ProgressiveHint({ hints, onReveal }) {
   const [hintIndex, setHintIndex] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
+
+  // Report the highest hint number the user has actually viewed (0 if never opened).
+  useEffect(() => {
+    if (isOpen) onReveal?.(hintIndex + 1)
+  }, [isOpen, hintIndex, onReveal])
 
   if (!hints || hints.length === 0) {
     return null
