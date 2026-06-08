@@ -382,6 +382,33 @@ def test_definite_integral_does_not_require_c():
     assert parsed is not None
 
 
+@pytest.mark.parametrize("user,correct,expected", [
+    # The regression: a definite answer differing by a constant must be REJECTED.
+    # parse_latex renders pi as a Symbol, which previously sent these down the
+    # "up to a constant" derivative path where any added constant passed.
+    (r'\frac{\pi}{4} + 1', r'\frac{\pi}{4}', False),
+    (r'\frac{\pi^2}{6} + 2', r'\frac{\pi^2}{6}', False),
+    (r'\frac{\pi}{2}', r'\frac{\pi}{4}', False),
+    (r'3', r'2', False),
+    # Correct values (including a decimal approximation and pi/e forms) must pass.
+    (r'\frac{\pi}{4}', r'\frac{\pi}{4}', True),
+    (r'0.7853981634', r'\frac{\pi}{4}', True),
+    (r'\frac{\pi^2}{6}', r'\frac{\pi^2}{6}', True),
+    (r'2', r'2', True),
+    (r'\sqrt{2}\pi', r'\sqrt{2}\pi', True),
+])
+def test_definite_integral_requires_value_equality(user, correct, expected):
+    """Definite integrals compare VALUES, never 'up to a constant'.
+
+    Regression for the bug where pi/e (rendered as plain symbols) made constant
+    answers look like they had a free variable, routing them to the derivative
+    path that vacuously accepts any answer off by a constant.
+    """
+    u = parse_latex_safely(user, is_indefinite=False)
+    c = parse_latex_safely(correct, is_indefinite=False)
+    assert is_equivalent_up_to_constant(u, c, is_indefinite=False) is expected
+
+
 # ── Parser normalizations ────────────────────────────────────────────
 
 @pytest.mark.parametrize("shorthand,canonical", [

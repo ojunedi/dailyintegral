@@ -86,17 +86,30 @@ def is_equivalent_up_to_constant(
         user_answer = sp.sympify(user_answer)
         correct_answer = sp.sympify(correct_answer)
 
-        # Method 1: Check if derivatives are equal (eliminates constants)
+        # Definite integrals evaluate to a single number, so compare VALUES — never
+        # "up to a constant". parse_latex renders pi/e as plain symbols, so a value
+        # like pi/4 looks like it has a free variable; without normalizing it first,
+        # it would fall into the derivative path below, which is vacuously true for
+        # constants (d/d(pi) ignores any added constant, accepting wrong answers like
+        # pi/4 + 1 as equal to pi/4).
+        if not is_indefinite:
+            norm = {sp.Symbol('e'): sp.E, sp.Symbol('pi'): sp.pi}
+            u = user_answer.subs(norm)
+            c = correct_answer.subs(norm)
+            try:
+                if sp.simplify(u - c) == 0:
+                    return True
+            except Exception:  # noqa: BLE001 — simplify can choke on hairy constants
+                pass
+            # Numeric fallback for equal-but-messy constants (nested radicals, etc.).
+            return expressions_match_numerically(u, c)
+
+        # ---- Indefinite: equivalence up to an additive constant ----
+        # Check if derivatives are equal (eliminates constants).
         # Find the variable in the expression (usually 'x' for integrals)
         variables = user_answer.free_symbols.union(correct_answer.free_symbols)
         if not variables:
-            # Definite integrals produce specific numeric answers — require exact equality.
-            # Indefinite integrals: any two constants are interchangeable (they fold into +C).
-            if not is_indefinite:
-                if sp.simplify(user_answer - correct_answer) == 0:
-                    return True
-                # simplify can fail on hairy equal constants (nested radicals etc.)
-                return expressions_match_numerically(user_answer, correct_answer)
+            # Two bare constants both fold into +C, so they're interchangeable.
             return True
 
         # Filter out constant symbols and use main variable (typically 'x')
