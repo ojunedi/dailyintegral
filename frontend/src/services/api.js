@@ -25,6 +25,19 @@ export const apiService = {
     }
   },
 
+  async getPracticeProblem({ difficulty, topic } = {}) {
+    try {
+      const params = {}
+      if (difficulty) params.difficulty = difficulty
+      if (topic) params.topic = topic
+      const response = await axios.get(`${API_BASE_URL}/practice/problem`, { params })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching practice problem:', error)
+      throw new Error(error.response?.data?.error || 'Failed to fetch practice problem')
+    }
+  },
+
   async submitAnswer(answer, problem) {
     try {
       const response = await axios.post(`${API_BASE_URL}/submit`, {

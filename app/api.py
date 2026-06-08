@@ -100,6 +100,63 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
         return jsonify(response.model_dump()), 500
 
 
+@api_bp.route('/practice/problem', methods=['GET'])
+def get_practice_problem() -> Union[Response, Tuple[Response, int]]:
+    """
+    Get a random practice problem as JSON.
+
+    Practice problems are independent of the daily challenge: they do not affect
+    the daily streak or progress (the client simply never POSTs progress for
+    practice attempts). Grading reuses the stateless POST /api/submit endpoint.
+
+    Optional query params:
+        difficulty: filter to 'easy' | 'medium' | 'hard'
+        topic: filter to a specific topic
+
+    Returns:
+        Response or tuple: JSON response with problem data or error
+    """
+    try:
+        difficulty = request.args.get('difficulty') or None
+        topic = request.args.get('topic') or None
+
+        if difficulty and difficulty.lower() not in {'easy', 'medium', 'hard'}:
+            response = ProblemResponse(
+                success=False,
+                problem=None,
+                error="difficulty must be one of 'easy', 'medium', 'hard'",
+            )
+            return jsonify(response.model_dump()), 400
+
+        problem_source = _get_problem_source()
+        problem_data = problem_source.get_random_problem(
+            difficulty=difficulty.lower() if difficulty else None,
+            topic=topic,
+        )
+
+        if problem_data:
+            problem = ProblemModel(**problem_data)
+            response = ProblemResponse(success=True, problem=problem)
+            current_app.logger.info(f"API: Serving practice problem {problem.id}")
+            return jsonify(response.model_dump())
+
+        response = ProblemResponse(
+            success=False,
+            problem=None,
+            error='No practice problem available',
+        )
+        return jsonify(response.model_dump()), 404
+
+    except Exception as e:
+        current_app.logger.error(f"API: Error fetching practice problem: {e}")
+        response = ProblemResponse(
+            success=False,
+            problem=None,
+            error='Internal server error',
+        )
+        return jsonify(response.model_dump()), 500
+
+
 @api_bp.route('/submit', methods=['POST'])
 @limiter.limit("20 per minute")
 def submit_answer() -> Union[Response, tuple[Response, int]]:
