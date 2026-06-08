@@ -1682,3 +1682,113 @@ math-field {
 .auth-switch-btn:hover {
   color: var(--chalk-white);
 }
+
+/* ============================================
+   THEME TOGGLE
+   ============================================ */
+.theme-toggle {
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 1000;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--neon-cyan);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--glow-cyan);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: var(--glow-cyan-intense);
+}
+
+.theme-toggle:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 600px) {
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    font-size: 1.05rem;
+  }
+}
+
+/* ============================================
+   LIGHT THEME
+   Overrides the design tokens for a "chalk on
+   paper" palette. Neon accents are darkened so
+   they stay legible on light surfaces.
+   ============================================ */
+[data-theme="light"] {
+  /* Base surfaces */
+  --bg-deep: #e6e9f0;
+  --bg-primary: #f4f6fa;
+  --bg-secondary: #eaeef6;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+
+  /* Accents (darkened for contrast on light) */
+  --neon-cyan: #0792a6;
+  --neon-cyan-dim: #0a7a8a;
+  --neon-pink: #d6194a;
+  --neon-pink-dim: #b01540;
+  --neon-green: #138a36;
+  --neon-amber: #b8730a;
+  --neon-purple: #8b2fd6;
+
+  /* Text */
+  --text-primary: #1a1f2e;
+  --text-secondary: #45506a;
+  --text-muted: #6b7689;
+  --chalk-white: #1a1f2e;
+
+  /* Semantic */
+  --success: #138a36;
+  --success-bg: rgba(19, 138, 54, 0.12);
+  --error: #d6194a;
+  --error-bg: rgba(214, 25, 74, 0.1);
+
+  /* Softer glows + shadows on light */
+  --glow-cyan: 0 0 12px rgba(7, 146, 166, 0.25), 0 0 24px rgba(7, 146, 166, 0.12);
+  --glow-cyan-intense: 0 0 16px rgba(7, 146, 166, 0.35), 0 0 32px rgba(7, 146, 166, 0.18);
+  --glow-pink: 0 0 12px rgba(214, 25, 74, 0.25), 0 0 24px rgba(214, 25, 74, 0.12);
+  --glow-green: 0 0 12px rgba(19, 138, 54, 0.3), 0 0 24px rgba(19, 138, 54, 0.15);
+  --shadow-card: 0 4px 24px rgba(31, 41, 64, 0.08);
+  --shadow-elevated: 0 8px 32px rgba(31, 41, 64, 0.12);
+}
+
+/* Body background uses a hardcoded slate by default — restate it for light. */
+[data-theme="light"] body {
+  background: var(--bg-primary);
+}
+
+/* Paper texture: light base, faint dark grid + dust instead of white-on-dark. */
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse at center, transparent 0%, rgba(31, 41, 64, 0.06) 100%),
+    linear-gradient(rgba(31, 41, 64, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 41, 64, 0.035) 1px, transparent 1px),
+    radial-gradient(circle 2px at 10% 20%, rgba(31, 41, 64, 0.04) 0%, transparent 100%),
+    radial-gradient(circle 1px at 25% 60%, rgba(31, 41, 64, 0.03) 0%, transparent 100%),
+    radial-gradient(circle 2px at 70% 30%, rgba(31, 41, 64, 0.04) 0%, transparent 100%),
+    radial-gradient(circle 1px at 85% 75%, rgba(31, 41, 64, 0.03) 0%, transparent 100%),
+    radial-gradient(circle 2px at 45% 85%, rgba(31, 41, 64, 0.04) 0%, transparent 100%),
+    radial-gradient(circle 1px at 60% 15%, rgba(31, 41, 64, 0.03) 0%, transparent 100%),
+    linear-gradient(135deg, #f4f6fa 0%, #eef1f7 25%, #f4f6fa 50%, #eaeef6 75%, #f4f6fa 100%);
+}
+
+/* Floating chalk doodles: faint dark ink rather than white. */
+[data-theme="light"] body::after {
+  color: rgba(31, 41, 64, 0.03);
+}

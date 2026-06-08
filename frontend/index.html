@@ -7,6 +7,16 @@
     <meta name="theme-color" content="#0d0d1a" />
     <title>Daily Integral | Challenge Your Calculus Skills</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>∫</text></svg>" />
+    <script>
+      // Apply saved theme before first paint to avoid a flash of the wrong mode.
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
