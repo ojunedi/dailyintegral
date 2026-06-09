@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 
 // Read the theme already applied by the inline script in index.html so the
-// button starts in sync (no flash, no mismatch). Falls back to stored value
-// or system preference.
+// button starts in sync (no flash, no mismatch). Falls back to stored value,
+// then defaults to dark.
 function getInitialTheme() {
   const applied = document.documentElement.getAttribute('data-theme')
   if (applied) return applied
@@ -10,7 +10,7 @@ function getInitialTheme() {
     const stored = localStorage.getItem('theme')
     if (stored) return stored
   } catch { /* localStorage unavailable */ }
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  return 'dark'
 }
 
 export default function ThemeToggle() {

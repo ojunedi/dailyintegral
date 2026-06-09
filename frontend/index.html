@@ -11,8 +11,7 @@
       // Apply saved theme before first paint to avoid a flash of the wrong mode.
       (function () {
         try {
-          var t = localStorage.getItem('theme');
-          if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          var t = localStorage.getItem('theme') || 'dark';
           document.documentElement.setAttribute('data-theme', t);
         } catch (e) { /* ignore */ }
       })();
