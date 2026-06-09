@@ -193,6 +193,12 @@ def parse_latex_safely(latex_str: str, is_indefinite: bool = True) -> Optional[s
         # Clean up common LaTeX issues
         latex_str = latex_str.strip()
 
+        # mathlive renders absolute values as \left|...\right|, but sympy's LaTeX
+        # parser fails to apply a preceding function to them (e.g. \ln\left|x+1\right|
+        # errors, and \frac{1}{2}\left(\ln\left|x+1\right|\right) silently drops the
+        # log and returns just 1/2). Plain | | bars parse correctly, so normalize.
+        latex_str = latex_str.replace(r'\left|', '|').replace(r'\right|', '|')
+
         # Normalize function names to proper LaTeX commands using regex, avoiding overlaps
         # Fix \sqrt without braces: \sqrt2 -> \sqrt{2}, \sqrtx -> \sqrt{x}
         latex_str = re.sub(r'\\sqrt([^{\[\s\\])', r'\\sqrt{\1}', latex_str)

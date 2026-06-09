@@ -555,3 +555,15 @@ def test_is_equivalent_numeric_fallback_rescues_simplify():
     b = -log(sp.csc(x) + sp.cot(x))
     assert is_equivalent_up_to_constant(a, b, is_indefinite=True)
     assert is_equivalent_up_to_constant(b, a, is_indefinite=True)
+
+
+@pytest.mark.parametrize("latex,expected", [
+    # mathlive emits \left|...\right| for abs; a preceding function used to drop it.
+    (r'\frac{1}{2}\left(\ln\left|x+1\right|\right)', sp.log(sp.Abs(x + 1)) / 2),
+    (r'\ln\left|x+1\right|', sp.log(sp.Abs(x + 1))),
+    (r'\left|x\right|', sp.Abs(x)),
+])
+def test_parse_abs_bars_with_function(latex, expected):
+    parsed = parse_latex_safely(latex, is_indefinite=False)
+    assert parsed is not None
+    assert sp.simplify(parsed - expected) == 0
