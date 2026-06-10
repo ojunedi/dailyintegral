@@ -353,10 +353,10 @@ def test_indefinite_integral_requires_plus_c():
     # User submits x^3/3 + C for integral of x^2 — should pass
     user_with_c = r'\frac{x^3}{3} + C'
     assert has_constant_of_integration(user_with_c) is True
-    parsed = parse_latex_safely(user_with_c, is_indefinite=True)
+    parsed = parse_latex_safely(user_with_c)
     assert parsed is not None
 
-    correct = parse_latex_safely(r'\frac{x^3}{3} + C', is_indefinite=True)
+    correct = parse_latex_safely(r'\frac{x^3}{3} + C')
     assert is_equivalent_up_to_constant(parsed, correct)
 
     # User submits x^3/3 WITHOUT +C — has_constant should fail
@@ -366,8 +366,8 @@ def test_indefinite_integral_requires_plus_c():
     # User submits sin(x) + C for integral of cos(x) — should pass
     user_trig = r'\sin(x) + C'
     assert has_constant_of_integration(user_trig) is True
-    parsed_trig = parse_latex_safely(user_trig, is_indefinite=True)
-    correct_trig = parse_latex_safely(r'\sin(x) + C', is_indefinite=True)
+    parsed_trig = parse_latex_safely(user_trig)
+    correct_trig = parse_latex_safely(r'\sin(x) + C')
     assert is_equivalent_up_to_constant(parsed_trig, correct_trig)
 
 
@@ -378,7 +378,7 @@ def test_definite_integral_does_not_require_c():
     definite_answer = r'4'
     # has_constant_of_integration is only relevant for indefinite —
     # for definite integrals, the caller should skip the check entirely
-    parsed = parse_latex_safely(definite_answer, is_indefinite=False)
+    parsed = parse_latex_safely(definite_answer)
     assert parsed is not None
 
 
@@ -404,8 +404,8 @@ def test_definite_integral_requires_value_equality(user, correct, expected):
     answers look like they had a free variable, routing them to the derivative
     path that vacuously accepts any answer off by a constant.
     """
-    u = parse_latex_safely(user, is_indefinite=False)
-    c = parse_latex_safely(correct, is_indefinite=False)
+    u = parse_latex_safely(user)
+    c = parse_latex_safely(correct)
     assert is_equivalent_up_to_constant(u, c, is_indefinite=False) is expected
 
 
@@ -564,6 +564,6 @@ def test_is_equivalent_numeric_fallback_rescues_simplify():
     (r'\left|x\right|', sp.Abs(x)),
 ])
 def test_parse_abs_bars_with_function(latex, expected):
-    parsed = parse_latex_safely(latex, is_indefinite=False)
+    parsed = parse_latex_safely(latex)
     assert parsed is not None
     assert sp.simplify(parsed - expected) == 0

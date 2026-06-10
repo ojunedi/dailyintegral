@@ -103,7 +103,7 @@ def _roundtrips(problem_latex: str, integrand) -> bool:
     body = integrand_latex_of(problem_latex)
     if body is None:
         return False
-    parsed = parse_latex_safely(body, is_indefinite=False)
+    parsed = parse_latex_safely(body)
     if parsed is None:
         return False
     parsed = parsed.subs({sp.Symbol("e"): sp.E, sp.Symbol("pi"): sp.pi})

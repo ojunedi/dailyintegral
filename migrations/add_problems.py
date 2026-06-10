@@ -89,7 +89,7 @@ def grade_all() -> bool:
 
     for p in PROBLEMS:
         is_indef = p.integral_type == "indefinite"
-        parsed = parse_latex_safely(p.solution, is_indefinite=is_indef)
+        parsed = parse_latex_safely(p.solution)
         if parsed is None:
             ok, msg = False, "solution did not parse"
         elif is_indef:

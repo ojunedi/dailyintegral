@@ -118,7 +118,7 @@ class NewProblem(BaseModel):
         runtime.
         """
         is_indef = self.integral_type == "indefinite"
-        parsed = parse_latex_safely(self.solution, is_indefinite=is_indef)
+        parsed = parse_latex_safely(self.solution)
         if parsed is None:
             return False, "solution LaTeX did not parse"
 
@@ -141,7 +141,7 @@ class NewProblem(BaseModel):
         body = integrand_latex_of(self.problem)
         if body is None:
             return False, r"problem is not a recognizable '\int ... dx'"
-        parsed = parse_latex_safely(body, is_indefinite=False)
+        parsed = parse_latex_safely(body)
         if parsed is None:
             return False, "problem integrand LaTeX did not parse (malformed braces?)"
         parsed = parsed.subs({sp.Symbol("e"): sp.E, sp.Symbol("pi"): sp.pi})

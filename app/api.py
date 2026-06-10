@@ -197,7 +197,7 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
 
         # For indefinite integrals, missing +C is immediately incorrect
         if is_indefinite and not has_constant_of_integration(submission.answer):
-            true_answer = parse_latex_safely(submission.problem.solution, is_indefinite=is_indefinite)
+            true_answer = parse_latex_safely(submission.problem.solution)
             response = SubmissionResponse(
                 success=True,
                 is_correct=False,
@@ -207,8 +207,8 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
             )
             return jsonify(response.model_dump())
 
-        user_answer = parse_latex_safely(submission.answer, is_indefinite=is_indefinite)
-        true_answer = parse_latex_safely(submission.problem.solution, is_indefinite=is_indefinite)
+        user_answer = parse_latex_safely(submission.answer)
+        true_answer = parse_latex_safely(submission.problem.solution)
 
         if user_answer is None:
             response = SubmissionResponse(

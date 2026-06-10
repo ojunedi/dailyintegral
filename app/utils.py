@@ -154,13 +154,15 @@ def is_equivalent_up_to_constant(
         return False
 
 
-def parse_latex_safely(latex_str: str, is_indefinite: bool = True) -> Optional[sp.Expr]:
+def parse_latex_safely(latex_str: str) -> Optional[sp.Expr]:
     """
     Safely parse LaTeX string to sympy expression with error handling.
 
+    Parsing is identical for definite and indefinite integrals; the caller
+    enforces the +C rule separately via has_constant_of_integration().
+
     Args:
         latex_str (str): LaTeX string to parse
-        is_indefinite (bool): Whether to auto-add +C for indefinite integrals (default True)
 
     Returns:
         sympy.Expr or None: Parsed expression or None if parsing fails
@@ -292,12 +294,3 @@ def sympy_to_latex(expr: sp.Expr, is_indefinite: bool = True) -> str:
     except Exception as e:
         logger.error(f"Error converting SymPy expression to LaTeX: {e}")
         return str(expr)
-
-
-# class ConstantOfIntegration(sp.NumberSymbol):
-#     def __new__(self, name):
-#         obj = sp.NumberSymbol.__new__(self)
-#         obj._name = name
-#         return obj
-#
-#     __str__ = lambda self: str(self._name)
