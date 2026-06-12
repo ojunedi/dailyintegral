@@ -5,6 +5,7 @@ description = "Daily Integral Challenge - a calculus practice web app"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "anthropic>=0.109.1",
     "antlr4-python3-runtime==4.11.1",
     "flask==3.1.2",
     "flask-cors==6.0.2",

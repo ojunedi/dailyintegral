@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
 import HintDisplay from './HintDisplay'
+import { apiService } from '../services/api'
 
-function ProgressiveHint({ hints, onReveal }) {
+function ProgressiveHint({ hints, onReveal, problem, attempt }) {
   const [hintIndex, setHintIndex] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
+  const [aiHint, setAiHint] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState(null)
 
-  // Report the highest hint number the user has actually viewed (0 if never opened).
+  // Report the number of hints actually viewed: highest static hint reached,
+  // plus one if the AI hint was used (0 if never opened).
   useEffect(() => {
-    if (isOpen) onReveal?.(hintIndex + 1)
-  }, [isOpen, hintIndex, onReveal])
+    const viewed = (isOpen ? hintIndex + 1 : 0) + (aiHint ? 1 : 0)
+    if (viewed > 0) onReveal?.(viewed)
+  }, [isOpen, hintIndex, aiHint, onReveal])
 
   if (!hints || hints.length === 0) {
     return null
@@ -25,6 +31,25 @@ function ProgressiveHint({ hints, onReveal }) {
       setHintIndex(hintIndex - 1)
     }
   }
+
+  const fetchAiHint = async () => {
+    setAiLoading(true)
+    setAiError(null)
+    try {
+      const response = await apiService.getAiHint(attempt, problem)
+      if (response.success) {
+        setAiHint(response.hint)
+      } else {
+        setAiError(response.error || 'Could not generate a hint')
+      }
+    } catch (err) {
+      setAiError(err.message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const hasAttempt = Boolean(attempt?.trim())
 
   return (
     <div className="progressive-hint">
@@ -67,6 +92,31 @@ function ProgressiveHint({ hints, onReveal }) {
               Next →
             </button>
           </div>
+
+          {problem && (
+            <div className="ai-hint">
+              {aiHint && (
+                <div className="ai-hint-result">
+                  <HintDisplay>{aiHint}</HintDisplay>
+                </div>
+              )}
+              <button
+                onClick={fetchAiHint}
+                type="button"
+                disabled={aiLoading}
+                className="hint-nav-button ai-hint-button"
+              >
+                {aiLoading
+                  ? 'Thinking…'
+                  : aiHint
+                    ? '🤖 Re-analyze'
+                    : hasAttempt
+                      ? '🤖 Analyze my attempt'
+                      : '🤖 Get a smart hint'}
+              </button>
+              {aiError && <p className="ai-hint-error">{aiError}</p>}
+            </div>
+          )}
         </div>
       )}
     </div>

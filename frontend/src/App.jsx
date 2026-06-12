@@ -24,6 +24,9 @@ function App() {
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
   const [debugMode, setDebugMode] = useState(false)
+  // Server reports whether the AI hint endpoint is configured (ANTHROPIC_API_KEY set);
+  // when false the 🤖 button never renders, so the dormant feature costs nothing.
+  const [aiHintsEnabled, setAiHintsEnabled] = useState(false)
   // Streak/result are derived per-identity in the identity effect below, never
   // initialized from shared localStorage (which would leak across accounts).
   const [streak, setStreak] = useState(0)
@@ -76,6 +79,7 @@ function App() {
       if (response.success) {
         setProblem(response.problem)
         setDebugMode(response.debug_mode || false)
+        setAiHintsEnabled(response.ai_hints_enabled || false)
       } else {
         setError(response.error || 'Failed to load problem')
       }
@@ -320,7 +324,12 @@ function App() {
               {!submitted ? (
                 <>
                   {result && !result.success && <ResultMessage result={result} />}
-                  <ProgressiveHint hints={problem?.progressive_hints} onReveal={(n) => setHintsUsed((h) => Math.max(h, n))} />
+                  <ProgressiveHint
+                    hints={problem?.progressive_hints}
+                    problem={aiHintsEnabled ? problem : null}
+                    attempt={userAnswer}
+                    onReveal={(n) => setHintsUsed((h) => Math.max(h, n))}
+                  />
                   <AnswerInput
                     value={userAnswer}
                     onChange={setUserAnswer}

@@ -26,6 +26,9 @@ class Config:
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
     SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 
+    # Anthropic (AI hints) — endpoint returns 503 when unset
+    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
 
 class DevelopmentConfig(Config):
     """Development configuration — debug mode on, verbose logging."""

@@ -51,6 +51,19 @@ export const apiService = {
     }
   },
 
+  async getAiHint(attempt, problem) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/hint`, {
+        attempt: attempt || null,
+        problem: problem,
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching AI hint:', error)
+      throw new Error(error.response?.data?.error || 'Failed to generate hint')
+    }
+  },
+
   async healthCheck() {
     try {
       const response = await axios.get(`${API_BASE_URL}/health`)

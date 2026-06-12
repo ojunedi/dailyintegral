@@ -6,9 +6,12 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 from pydantic import ValidationError
 
 from app import limiter
+from app.ai_hint import generate_hint
 from app.auth import require_auth
 from app.models import (
     HealthResponse,
+    HintRequest,
+    HintResponse,
     ProblemModel,
     ProblemResponse,
     ProgressEntry,
@@ -64,7 +67,8 @@ def get_today_problem() -> Union[Response, Tuple[Response, int]]:
                 response = ProblemResponse(
                     success=True,
                     problem=problem,
-                    debug_mode=debug_mode
+                    debug_mode=debug_mode,
+                    ai_hints_enabled=bool(current_app.config.get('ANTHROPIC_API_KEY')),
                 )
                 current_app.logger.info(
                     f"API: Serving problem {problem.id} "
@@ -254,6 +258,52 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
             error=str(e)
         )
         return jsonify(response.model_dump()), 500
+
+
+@api_bp.route('/hint', methods=['POST'])
+@limiter.limit("5 per minute")
+def get_ai_hint() -> Union[Response, Tuple[Response, int]]:
+    """
+    Generate an on-demand AI hint tailored to the user's current attempt.
+
+    The attempt is first analyzed symbolically with SymPy (missing +C,
+    coefficient off by a factor, sign error, derivative mismatch); those
+    grounded findings are then turned into a single targeted nudge by Claude.
+    The model never sees the stored solution, so it cannot leak it verbatim.
+
+    Stateless like /submit — never touches progress or the daily streak.
+    """
+    api_key = current_app.config.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        response = HintResponse(success=False, error='AI hints are not configured')
+        return jsonify(response.model_dump()), 503
+
+    data = request.get_json(silent=True)
+    if not data:
+        response = HintResponse(success=False, error='Request body is required')
+        return jsonify(response.model_dump()), 400
+
+    try:
+        hint_req = HintRequest(**data)
+    except ValidationError as e:
+        current_app.logger.warning(f"Hint validation error: {e}")
+        response = HintResponse(success=False, error=str(e.errors()[0]['msg']))
+        return jsonify(response.model_dump()), 400
+
+    try:
+        hint = generate_hint(hint_req.problem, hint_req.attempt, api_key)
+    except Exception as e:
+        current_app.logger.error(f"API: Error generating hint: {e}")
+        response = HintResponse(success=False, error='Hint service is temporarily unavailable')
+        return jsonify(response.model_dump()), 502
+
+    if not hint:
+        response = HintResponse(success=False, error='Could not generate a hint for this attempt')
+        return jsonify(response.model_dump()), 502
+
+    current_app.logger.info(f"API: Generated AI hint for problem {hint_req.problem.id}")
+    response = HintResponse(success=True, hint=hint)
+    return jsonify(response.model_dump())
 
 
 @api_bp.route('/progress', methods=['POST'])

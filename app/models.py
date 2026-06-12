@@ -105,6 +105,10 @@ class ProblemResponse(BaseModel):
     success: bool = Field(..., description="Whether the request succeeded")
     problem: Optional[ProblemModel] = Field(None, description="Problem data")
     debug_mode: bool = Field(False, description="Whether debug mode is active")
+    ai_hints_enabled: bool = Field(
+        False,
+        description="Whether the AI hint endpoint is configured (controls the UI button)"
+    )
     error: Optional[str] = Field(None, description="Error message if any")
 
 
@@ -150,3 +154,26 @@ class SyncRequest(BaseModel):
     """Model for bulk progress sync request."""
 
     entries: list[ProgressEntry] = Field(..., min_length=1, max_length=500)
+
+
+class HintRequest(BaseModel):
+    """Model for an AI hint request."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    attempt: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="User's current LaTeX attempt (may be empty for a strategy hint)"
+    )
+    problem: ProblemModel = Field(..., description="The problem being attempted")
+
+
+class HintResponse(BaseModel):
+    """Model for an AI hint response."""
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    success: bool = Field(..., description="Whether the request succeeded")
+    hint: Optional[str] = Field(None, description="Generated hint (inline math in $...$)")
+    error: Optional[str] = Field(None, description="Error message if any")

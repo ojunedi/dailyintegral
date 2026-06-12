@@ -1,7 +1,7 @@
 """Supabase progress CRUD helpers."""
 
-from supabase import Client, create_client
 from flask import current_app
+from supabase import Client, create_client
 
 
 def get_service_client() -> Client:

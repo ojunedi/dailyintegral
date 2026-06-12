@@ -678,6 +678,30 @@ math-field {
   line-height: 1.6;
 }
 
+.ai-hint {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(var(--ink-rgb), 0.05);
+}
+
+.ai-hint-result {
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  background: rgba(255, 165, 0, 0.05);
+  border-left: 2px solid var(--neon-amber);
+  border-radius: var(--radius-sm);
+}
+
+.ai-hint-button {
+  width: 100%;
+}
+
+.ai-hint-error {
+  margin-top: var(--space-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 /* ============================================
    SOLUTION REVEAL
    ============================================ */

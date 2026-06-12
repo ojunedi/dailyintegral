@@ -1,12 +1,16 @@
 import pytest
 import sympy as sp
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 from sympy import Rational, cos, log, pi, sin
 from sympy.core import Symbol
 
 from app.utils import (
     expressions_match_numerically,
+    has_constant_of_integration,
     is_equivalent_up_to_constant,
     parse_latex_safely,
+    sympy_to_latex,
 )
 
 x = sp.Symbol("x")
@@ -320,7 +324,6 @@ def test_parse_inverse_trig_split_form_fixed():
 
 def test_has_constant_of_integration():
     """Test that has_constant_of_integration correctly detects +C in LaTeX strings."""
-    from app.utils import has_constant_of_integration
 
     # Should return True — user included +C
     assert has_constant_of_integration(r'\frac{x^3}{3} + C') is True
@@ -348,7 +351,6 @@ def test_indefinite_integral_requires_plus_c():
     should NOT auto-add +C anymore. Instead, the caller checks via
     has_constant_of_integration before accepting the answer.
     """
-    from app.utils import has_constant_of_integration
 
     # User submits x^3/3 + C for integral of x^2 — should pass
     user_with_c = r'\frac{x^3}{3} + C'
@@ -470,8 +472,6 @@ def test_sqrt_corpus_never_crashes(latex_input):
 
 # ── Hypothesis fuzz: parse_latex_safely must never raise ────────────
 
-from hypothesis import HealthCheck, given, settings
-from hypothesis import strategies as st
 
 
 @given(st.text(max_size=150))
@@ -492,7 +492,6 @@ def test_parse_latex_latex_like_never_raises(s):
 
 # ── sympy_to_latex ───────────────────────────────────────────────────
 
-from app.utils import sympy_to_latex
 
 
 def test_sympy_to_latex_appends_plus_c():
