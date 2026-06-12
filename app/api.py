@@ -255,7 +255,7 @@ def submit_answer() -> Union[Response, tuple[Response, int]]:
         response = SubmissionResponse(
             success=False,
             message='Internal server error',
-            error=str(e)
+            error='Internal server error'
         )
         return jsonify(response.model_dump()), 500
 

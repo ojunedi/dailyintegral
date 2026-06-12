@@ -291,6 +291,27 @@ class TestSubmitEndpoint:
         assert data['is_correct'] is False
         assert 'parse' in data['error'].lower()
 
+    def test_dos_payload_does_not_hang(self, client):
+        """A power-tower answer must be handled quickly, not spin a worker.
+
+        It passes the +C check and reaches the parser, which rejects it via the
+        complexity gate — so the endpoint returns a normal "incorrect" result
+        (parse → None → graded incorrect) within a bounded time, never hanging.
+        """
+        import time
+
+        problem = self._get_problem(client)
+        start = time.monotonic()
+        resp = client.post('/api/submit', json={
+            'answer': r'9^{9^{9999999}} + C',
+            'problem': problem,
+        })
+        elapsed = time.monotonic() - start
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['is_correct'] is False
+        assert elapsed < 8.0, f"submit took {elapsed:.1f}s — DoS gate failed"
+
     def test_no_body_returns_error(self, client):
         resp = client.post('/api/submit', content_type='application/json')
         assert resp.status_code in (400, 500)

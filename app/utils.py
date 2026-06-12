@@ -1,11 +1,160 @@
 #pyright: basic
 import logging
 import re
+import signal
+import threading
+from contextlib import contextmanager
 from typing import Optional
 
 import sympy as sp
 
 logger = logging.getLogger(__name__)
+
+# Hard wall-clock ceiling for a single grade. SymPy's diff/simplify run on
+# attacker-controlled expressions; deeply nested inputs can spin for many
+# seconds, tying up request workers. 5s is far more than any legitimate answer
+# needs. NOTE: this only bounds *interruptible* (pure-Python) work — a giant
+# bignum power computes in a C routine that ignores the signal, so the
+# complexity guard below is the primary defense and this is the backstop.
+_GRADE_TIMEOUT_SECONDS = 5.0
+
+# Structural limits on a user-supplied expression, checked before any expensive
+# SymPy work. These reject denial-of-service payloads (e.g. 9^{9^{9999999}},
+# 999999!) whose cost is in materializing an astronomically large number — work
+# that happens in C and cannot be interrupted by the wall-clock guard. The
+# thresholds sit far above any legitimate integral answer.
+_MAX_OPS = 200          # total operation count of the parsed expression
+_MAX_EXPONENT = 1000    # magnitude of a numeric power exponent
+_MAX_FACTORIAL_ARG = 1000
+
+
+def _warmup_latex_parser() -> None:
+    """Force SymPy's lazy imports to load in a normal (evaluated) context.
+
+    The DoS gate parses inside ``with sp.evaluate(False)``. On a cold process
+    that very first call triggers a lazy ``sympy.physics.units`` import that
+    raises under disabled evaluation. Doing one ordinary parse at import time
+    loads those modules so the gate is safe. Best-effort — never blocks import.
+    """
+    try:
+        from sympy.parsing.latex import parse_latex
+        parse_latex(r'x^2 + 1')
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"LaTeX parser warmup failed: {e}")
+
+
+_warmup_latex_parser()
+
+
+def _is_safe_small_number(e: sp.Expr) -> bool:
+    """True iff a constant (free-symbol-less) expression is a small, bounded
+    value that cannot blow up when evaluated.
+
+    Inspected structurally — never evaluated — so it is safe to call on a power
+    tower. Allows arithmetic over bounded numeric literals and *negative*-integer
+    inner powers (the q^{-1} denominators that fractional exponents like 3/2
+    decompose into under disabled evaluation), but rejects positive nested powers
+    and factorials (the 9^9 / 999999! blow-ups).
+    """
+    if e.is_Number:
+        try:
+            return abs(float(e)) <= _MAX_EXPONENT
+        except (TypeError, ValueError, OverflowError):
+            return False
+    if isinstance(e, (sp.Add, sp.Mul)):
+        return all(_is_safe_small_number(a) for a in e.args)
+    if isinstance(e, sp.Pow):
+        base, exp = e.base, e.exp
+        # Only denominator-style inversions: a negative integer exponent keeps
+        # the value in (0, 1] for |base| >= 1, so it can never blow up.
+        if exp.is_Integer and int(exp) < 0:
+            return _is_safe_small_number(base)
+        return False
+    return False
+
+
+def _within_complexity_budget(expr: Optional[sp.Expr]) -> bool:
+    """Reject expressions whose evaluation would be pathologically expensive.
+
+    Must be called on an expression parsed with evaluation DISABLED, so that a
+    power tower like 9^{9^{9999999}} (or the single-digit 9^{9^9}) is still an
+    un-collapsed ``Pow`` tree we can inspect — rather than an astronomically
+    large integer that already hung the parser while being built.
+
+    A power node is dangerous when its exponent evaluates to a large number.
+    We distinguish three exponent shapes without ever materializing a huge value:
+      - atomic literal (x^2, x^1000)      → bound its magnitude directly;
+      - composite numeric (3/2, or 9^9)   → allow only small rationals;
+      - symbolic (e^{x^2}, 2^x)           → always safe, never materializes.
+    """
+    if expr is None:
+        return True
+    try:
+        if expr.count_ops() > _MAX_OPS:
+            return False
+
+        for node in sp.preorder_traversal(expr):
+            if isinstance(node, sp.Pow):
+                exp = node.exp
+                if exp.is_Number:
+                    try:
+                        if abs(float(exp)) > _MAX_EXPONENT:
+                            return False
+                    except (TypeError, ValueError, OverflowError):
+                        return False
+                elif exp.is_number and not _is_safe_small_number(exp):
+                    # Composite constant exponent that isn't a small rational —
+                    # i.e. a numeric tower like 9^9. Would materialize a huge number.
+                    return False
+            elif isinstance(node, sp.factorial):
+                arg = node.args[0]
+                if arg.is_Number:
+                    try:
+                        if abs(float(arg)) > _MAX_FACTORIAL_ARG:
+                            return False
+                    except (TypeError, ValueError, OverflowError):
+                        return False
+                elif arg.is_number and not _is_safe_small_number(arg):
+                    return False
+        return True
+    except Exception as e:  # noqa: BLE001 — any analysis failure ⇒ refuse to grade
+        logger.warning(f"Complexity analysis failed; rejecting expression: {e}")
+        return False
+
+
+class GradingTimeout(BaseException):
+    """Raised when a grading computation exceeds the wall-clock ceiling.
+
+    Subclasses BaseException (not Exception) so the broad ``except Exception``
+    guards inside the grading core can't swallow the alarm and let a
+    pathological computation run past its budget.
+    """
+
+
+@contextmanager
+def _time_limit(seconds: float):
+    """Bound a CPU-bound block with a wall-clock timeout.
+
+    Uses SIGALRM, which only fires on Unix and only in the main thread — that
+    covers the production path (gunicorn sync workers, Vercel) and the test
+    runner. Where SIGALRM is unavailable (Windows dev, threaded workers) it
+    degrades to a no-op so grading never breaks; input is still bounded to
+    1000 chars upstream.
+    """
+    if not hasattr(signal, "SIGALRM") or threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    def _handler(signum, frame):
+        raise GradingTimeout()
+
+    previous = signal.signal(signal.SIGALRM, _handler)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 # Real sample points and tolerance for the numeric equality fallback. These are
 # the same values used by the upload gate's derivative check, so the gate and the
@@ -81,6 +230,24 @@ def is_equivalent_up_to_constant(
         logger.warning("One of the answers is None")
         return False
 
+    try:
+        with _time_limit(_GRADE_TIMEOUT_SECONDS):
+            return _equivalence_core(user_answer, correct_answer, is_indefinite)
+    except GradingTimeout:
+        logger.warning("Grading timed out; treating answer as incorrect")
+        return False
+    except Exception as e:
+        logger.error(f"Error in equivalence checking: {e}")
+        return False
+
+
+def _equivalence_core(
+    user_answer: sp.Expr,
+    correct_answer: sp.Expr,
+    is_indefinite: bool,
+) -> bool:
+    """Symbolic equivalence check. Run only inside is_equivalent_up_to_constant,
+    which bounds it with a wall-clock timeout."""
     try:
         # Convert to sympy expressions if they're not already
         user_answer = sp.sympify(user_answer)
@@ -223,6 +390,17 @@ def parse_latex_safely(latex_str: str) -> Optional[sp.Expr]:
         # For indefinite integrals, if user included +C we keep it;
         # if they didn't, we still parse but the caller should reject via
         # has_constant_of_integration() check.
+
+        # DoS gate: parse first with evaluation DISABLED so a power tower like
+        # 9^{9^{9999999}} stays an inspectable Pow tree instead of being
+        # materialized into an astronomically large integer (which hangs the
+        # parser, in uninterruptible C code, before grading even starts). Only
+        # if the structure is within budget do we parse normally (evaluated).
+        with sp.evaluate(False):
+            unevaluated = parse_latex(latex_str)
+        if not _within_complexity_budget(unevaluated):
+            logger.warning(f"Rejected over-complex LaTeX input: {latex_str}")
+            return None
 
         parsed_expr = parse_latex(latex_str)
         logger.info(f"Successfully parsed LaTeX: {latex_str} -> {parsed_expr}")

@@ -6,6 +6,7 @@ from sympy import Rational, cos, log, pi, sin
 from sympy.core import Symbol
 
 from app.utils import (
+    _GRADE_TIMEOUT_SECONDS,
     expressions_match_numerically,
     has_constant_of_integration,
     is_equivalent_up_to_constant,
@@ -14,6 +15,57 @@ from app.utils import (
 )
 
 x = sp.Symbol("x")
+
+
+@pytest.mark.parametrize("payload", [
+    r'9^{9^{9999999}} + C',   # power tower with a large literal
+    r'9^{9^9} + C',           # power tower, single digits (no large literal)
+    r'9^{9^{9^{9}}} + C',     # taller tower
+    r'999999! + C',           # huge factorial
+])
+def test_parse_rejects_dos_payloads(payload):
+    """Power-tower / huge-factorial inputs must be rejected at parse time,
+    fast and without materializing an astronomically large number.
+
+    These payloads previously hung the parser for tens of seconds (the giant
+    integer is built in uninterruptible C code), tying up a request worker.
+    The complexity gate must reject them, returning None quickly.
+    """
+    import time
+
+    start = time.monotonic()
+    result = parse_latex_safely(payload)
+    elapsed = time.monotonic() - start
+
+    assert result is None, f"expected rejection, got {result}"
+    assert elapsed < 5.0, f"parse took {elapsed:.1f}s — gate did not short-circuit"
+
+
+def test_legitimate_nested_exponent_still_parses():
+    """The DoS gate must NOT reject a legitimate symbolic nested exponent
+    such as e^{x^2} (the exponent is symbolic, so it never materializes)."""
+    expr = parse_latex_safely(r'e^{x^2} + C')
+    assert expr is not None
+
+
+def test_grading_backstop_bounds_slow_input():
+    """An input that passes the complexity gate but is slow to simplify
+    (deeply nested trig) must be capped by the wall-clock backstop, not run
+    unbounded. It is interruptible Python work, so SIGALRM applies."""
+    import time
+
+    attacker = parse_latex_safely(
+        r'\sin(\sin(\sin(\sin(\sin(\sin(\sin(\sin(x^{99})))))))) ^ {99} + C'
+    )
+    solution = parse_latex_safely(r'\frac{x^3}{3} + C')
+    assert attacker is not None and solution is not None
+
+    start = time.monotonic()
+    result = is_equivalent_up_to_constant(attacker, solution, is_indefinite=True)
+    elapsed = time.monotonic() - start
+
+    assert result is False
+    assert elapsed < _GRADE_TIMEOUT_SECONDS + 3.0, f"grading took {elapsed:.1f}s"
 
 
 def test_is_equivalent_up_to_constant_basic():
