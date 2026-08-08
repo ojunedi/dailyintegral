@@ -3,6 +3,7 @@ import ProblemDisplay from './ProblemDisplay'
 import AnswerInput from './AnswerInput'
 import ResultMessage from './ResultMessage'
 import ProgressiveHint from './ProgressiveHint'
+import SolutionReveal from './SolutionReveal'
 import { apiService } from '../services/api'
 
 // Self-contained practice flow. Keeps its own local state so it can never touch
@@ -97,6 +98,15 @@ function PracticeMode() {
             Next problem →
           </button>
         </div>
+      )}
+
+      {problem && (
+        <SolutionReveal
+          key={problem.id}
+          solution={problem.latex_solution || problem.solution}
+          solved={submitted}
+          correct={result?.is_correct}
+        />
       )}
     </>
   )
